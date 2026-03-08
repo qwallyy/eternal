@@ -27,9 +27,16 @@ test:
 	@cmake --build $(BUILD_DIR) -j$(JOBS)
 	@cd $(BUILD_DIR) && ctest --output-on-failure
 
-install: build
+install:
+	rm -rf $(BUILD_DIR)
+	cmake -B $(BUILD_DIR) \
+		-DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
+		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
+		-DETERNAL_BUILD_TESTS=OFF
+	cmake --build $(BUILD_DIR) -j$(JOBS)
 	install -Dm755 $(BUILD_DIR)/eternal $(DESTDIR)$(BINDIR)/eternal
 	install -Dm755 $(BUILD_DIR)/eternalctl $(DESTDIR)$(BINDIR)/eternalctl
+	install -Dm755 packaging/eternal-session $(DESTDIR)$(BINDIR)/eternal-session
 	install -Dm644 config/eternal.kdl $(DESTDIR)$(DATADIR)/eternal/eternal.kdl
 	install -Dm644 packaging/eternal.desktop $(DESTDIR)$(SESSION_DIR)/eternal.desktop
 	install -Dm644 docs/eternal.1 $(DESTDIR)$(MANDIR)/man1/eternal.1
@@ -37,6 +44,7 @@ install: build
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/eternal
 	rm -f $(DESTDIR)$(BINDIR)/eternalctl
+	rm -f $(DESTDIR)$(BINDIR)/eternal-session
 	rm -f $(DESTDIR)$(DATADIR)/eternal/eternal.kdl
 	rm -f $(DESTDIR)$(SESSION_DIR)/eternal.desktop
 	rm -f $(DESTDIR)$(MANDIR)/man1/eternal.1

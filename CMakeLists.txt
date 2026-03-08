@@ -354,6 +354,11 @@ if(ETERNAL_BUILD_CLI AND ETERNAL_ENABLE_IPC)
     install(TARGETS eternalctl RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
+install(PROGRAMS packaging/eternal-session
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+    OPTIONAL
+)
+
 install(FILES config/eternal.kdl
     DESTINATION ${CMAKE_INSTALL_DATADIR}/eternal
     OPTIONAL

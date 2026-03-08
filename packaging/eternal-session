@@ -1,0 +1,18 @@
+#!/bin/sh
+
+export XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP=eternal
+export XDG_SESSION_DESKTOP=eternal
+export LIBSEAT_BACKEND=logind
+
+# VM-friendly wlroots defaults. Users can override them in their environment.
+export WLR_NO_HARDWARE_CURSORS="${WLR_NO_HARDWARE_CURSORS:-1}"
+export WLR_RENDERER_ALLOW_SOFTWARE="${WLR_RENDERER_ALLOW_SOFTWARE:-1}"
+export WLR_RENDERER="${WLR_RENDERER:-pixman}"
+export WLR_DRM_NO_ATOMIC="${WLR_DRM_NO_ATOMIC:-1}"
+
+if command -v dbus-run-session >/dev/null 2>&1; then
+    exec dbus-run-session /usr/bin/eternal
+fi
+
+exec /usr/bin/eternal

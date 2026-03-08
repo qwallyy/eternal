@@ -74,6 +74,7 @@ ctest --output-on-failure
 %doc README.md
 %{_bindir}/eternal
 %{_bindir}/eternalctl
+%{_bindir}/eternal-session
 %config(noreplace) %{_sysconfdir}/eternal/eternal.kdl
 %{_datadir}/wayland-sessions/eternal.desktop
 %{_datadir}/eternal/
