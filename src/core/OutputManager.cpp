@@ -21,14 +21,33 @@ extern "C" {
 
 namespace eternal {
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Construction / destruction
 // ---------------------------------------------------------------------------
 
 OutputManager::OutputManager(Server& server)
-    : m_server(server) {}
+    : m_server(server) {
+    initListener(m_newOutputListener);
+}
 
-OutputManager::~OutputManager() = default;
+OutputManager::~OutputManager() {
+    resetListener(m_newOutputListener);
+}
 
 bool OutputManager::init() {
     LOG_INFO("OutputManager: initializing");

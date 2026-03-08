@@ -1,6 +1,7 @@
 #include "eternal/core/Compositor.hpp"
 #include "eternal/core/Server.hpp"
 #include "eternal/core/Output.hpp"
+#include "eternal/core/OutputManager.hpp"
 #include "eternal/core/Surface.hpp"
 #include "eternal/workspace/WorkspaceManager.hpp"
 #include "eternal/utils/Logger.hpp"
@@ -57,6 +58,8 @@ void Compositor::destroyOutput(Output* output) {
     if (!output) return;
 
     LOG_INFO("Compositor: destroying output '{}'", output->getName());
+
+    m_server.getOutputManager().handleOutputDestroy(output);
 
     if (m_activeOutput == output) {
         m_activeOutput = nullptr;
