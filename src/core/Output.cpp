@@ -568,6 +568,8 @@ void Output::onDestroy(struct wl_listener* listener, void* data) {
 
     LOG_INFO("Output '{}' disconnected", self->m_name);
 
+    self->m_wlrOutput = nullptr;
+
     // Let the compositor handle cleanup and removal from the output list.
     self->m_server.getCompositor().destroyOutput(self);
 }

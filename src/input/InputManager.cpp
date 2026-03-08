@@ -223,8 +223,21 @@ void InputManager::handleCursorFrame(wl_listener* listener, void* /*data*/) {
 // Device hotplug
 // ---------------------------------------------------------------------------
 
+void InputManager::handleDeviceDestroy(wl_listener* listener, void* data) {
+    TrackedDevice* wrapper = wl_container_of(listener, wrapper, destroyListener);
+    if (wrapper && wrapper->manager) {
+        wrapper->manager->removeDevice(wrapper->device);
+    }
+}
+
 void InputManager::addDevice(wlr_input_device* device) {
-    devices_.push_back(device);
+    auto wrapper = std::make_unique<TrackedDevice>();
+    wrapper->device = device;
+    wrapper->manager = this;
+    wrapper->destroyListener.notify = handleDeviceDestroy;
+    wl_signal_add(&device->events.destroy, &wrapper->destroyListener);
+
+    devices_.push_back(std::move(wrapper));
     LOG_INFO("Input device added: {} (type {})", device->name,
              static_cast<int>(device->type));
 
@@ -251,7 +264,8 @@ void InputManager::addDevice(wlr_input_device* device) {
 
     // Update seat capabilities based on attached devices
     uint32_t caps = 0;
-    for (auto* dev : devices_) {
+    for (auto& devWrapper : devices_) {
+        auto* dev = devWrapper->device;
         switch (dev->type) {
         case WLR_INPUT_DEVICE_KEYBOARD:
             caps |= WL_SEAT_CAPABILITY_KEYBOARD;
@@ -272,14 +286,18 @@ void InputManager::addDevice(wlr_input_device* device) {
 void InputManager::removeDevice(wlr_input_device* device) {
     LOG_INFO("Input device removed: {}", device->name);
 
-    auto it = std::find(devices_.begin(), devices_.end(), device);
+    auto it = std::find_if(devices_.begin(), devices_.end(),
+        [device](const auto& d) { return d->device == device; });
+    
     if (it != devices_.end()) {
+        wl_list_remove(&(*it)->destroyListener.link);
         devices_.erase(it);
     }
 
     // Re-evaluate seat capabilities
     uint32_t caps = 0;
-    for (auto* dev : devices_) {
+    for (auto& devWrapper : devices_) {
+        auto* dev = devWrapper->device;
         switch (dev->type) {
         case WLR_INPUT_DEVICE_KEYBOARD:
             caps |= WL_SEAT_CAPABILITY_KEYBOARD;
@@ -348,7 +366,8 @@ void InputManager::setNaturalScroll(bool enabled) {
 }
 
 void InputManager::setTapToClick(bool enabled) {
-    for (auto* device : devices_) {
+    for (auto& devWrapper : devices_) {
+        auto* device = devWrapper->device;
         if (!wlr_input_device_is_libinput(device)) continue;
         auto* libinputDevice = wlr_libinput_get_device_handle(device);
         if (libinput_device_config_tap_get_finger_count(libinputDevice) > 0) {
@@ -362,7 +381,8 @@ void InputManager::setTapToClick(bool enabled) {
 void InputManager::setAccelProfile(AccelProfile profile) {
     pointer_->setAccelProfile(profile);
 
-    for (auto* device : devices_) {
+    for (auto& devWrapper : devices_) {
+        auto* device = devWrapper->device;
         if (!wlr_input_device_is_libinput(device)) continue;
         auto* libinputDevice = wlr_libinput_get_device_handle(device);
         enum libinput_config_accel_profile lp = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
@@ -384,7 +404,8 @@ void InputManager::setAccelProfile(AccelProfile profile) {
 void InputManager::setScrollMethod(ScrollMethod method) {
     pointer_->setScrollMethod(method);
 
-    for (auto* device : devices_) {
+    for (auto& devWrapper : devices_) {
+        auto* device = devWrapper->device;
         if (!wlr_input_device_is_libinput(device)) continue;
         auto* libinputDevice = wlr_libinput_get_device_handle(device);
         enum libinput_config_scroll_method lm = LIBINPUT_CONFIG_SCROLL_NO_SCROLL;
@@ -419,8 +440,8 @@ void InputManager::addDeviceConfig(const InputDeviceConfig& config) {
 }
 
 void InputManager::applyDeviceConfigs() {
-    for (auto* device : devices_) {
-        configureLibinputDevice(device);
+    for (auto& devWrapper : devices_) {
+        configureLibinputDevice(devWrapper->device);
     }
 }
 

@@ -18,7 +18,8 @@
       "Bash(gh auth:*)",
       "Bash(git:*)",
       "Bash(make:*)",
-      "Bash(sudo make:*)"
+      "Bash(sudo make:*)",
+      "Bash(sudo whoami:*)"
     ]
   }
 }

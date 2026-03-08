@@ -71,6 +71,12 @@ void Compositor::destroyOutput(Output* output) {
         }
     }
 
+    for (auto& surfPtr : m_surfaces) {
+        if (surfPtr->getOutput() == output) {
+            surfPtr->setOutput(nullptr);
+        }
+    }
+
     std::erase_if(m_outputs, [output](const auto& ptr) {
         return ptr.get() == output;
     });
@@ -124,6 +130,11 @@ void Compositor::destroySurface(Surface* surface) {
 
     if (m_focusedSurface == surface) {
         m_focusedSurface = nullptr;
+    }
+
+    auto workspaces = m_server.getWorkspaceManager().getAllWorkspaces();
+    for (auto* ws : workspaces) {
+        ws->removeWindow(surface);
     }
 
     std::erase_if(m_surfaces, [surface](const auto& ptr) {

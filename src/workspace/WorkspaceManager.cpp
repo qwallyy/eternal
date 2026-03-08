@@ -349,18 +349,26 @@ void WorkspaceManager::handleOutputDisconnected(Output* output) {
     Output* fallback = findFallbackOutput(output);
     if (!fallback) {
         LOG_WARN("WorkspaceManager: no fallback output available");
-        return;
-    }
-
-    // Move all workspaces from the disconnected output to the fallback.
-    for (auto& ws : m_workspaces) {
-        if (ws->getOutput() == output) {
-            ws->setOutput(fallback);
-            fallback->addWorkspace(ws.get());
-            LOG_INFO("WorkspaceManager: moved workspace '{}' from '{}' to '{}'",
-                     ws->getName(), output->getName(), fallback->getName());
+        for (auto& ws : m_workspaces) {
+            if (ws->getOutput() == output) {
+                ws->setOutput(nullptr);
+            }
+        }
+    } else {
+        // Move all workspaces from the disconnected output to the fallback.
+        for (auto& ws : m_workspaces) {
+            if (ws->getOutput() == output) {
+                ws->setOutput(fallback);
+                fallback->addWorkspace(ws.get());
+                LOG_INFO("WorkspaceManager: moved workspace '{}' from '{}' to '{}'",
+                         ws->getName(), output->getName(), fallback->getName());
+            }
         }
     }
+
+    std::erase_if(m_animStates, [output](const auto& state) {
+        return state.output == output;
+    });
 }
 
 void WorkspaceManager::handleOutputConnected(Output* output) {

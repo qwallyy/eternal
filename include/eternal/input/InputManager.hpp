@@ -143,7 +143,12 @@ private:
     std::unique_ptr<KeybindManager> keybindManager_;
     std::unique_ptr<GestureRecognizer> gestureRecognizer_;
 
-    std::vector<wlr_input_device*> devices_;
+    struct TrackedDevice {
+        wlr_input_device* device;
+        InputManager* manager;
+        wl_listener destroyListener;
+    };
+    std::vector<std::unique_ptr<TrackedDevice>> devices_;
     std::vector<InputDeviceConfig> deviceConfigs_;
 
     KeyCallback keyBindingCallback_;
@@ -162,6 +167,7 @@ private:
     static void handleCursorButton(wl_listener* listener, void* data);
     static void handleCursorAxis(wl_listener* listener, void* data);
     static void handleCursorFrame(wl_listener* listener, void* data);
+    static void handleDeviceDestroy(wl_listener* listener, void* data);
 
     void configureLibinputDevice(wlr_input_device* device);
     void setupKeyboard(wlr_input_device* device);
