@@ -1,3 +1,6 @@
+#include "eternal/core/Compositor.hpp"
+#include "eternal/core/Server.hpp"
+#include "eternal/core/Surface.hpp"
 #include "eternal/input/Pointer.hpp"
 #include "eternal/input/InputManager.hpp"
 #include "eternal/input/Keyboard.hpp"
@@ -194,21 +197,31 @@ Pointer::SurfaceAtResult Pointer::surfaceAtCursor() const {
     SurfaceAtResult result;
 
     wlr_scene* scene = manager_->getScene();
-    if (!scene) return result;
+    if (scene) {
+        double sx = 0, sy = 0;
+        wlr_scene_node* node = wlr_scene_node_at(
+            &scene->tree.node, cursorX_, cursorY_, &sx, &sy);
 
-    double sx = 0, sy = 0;
-    wlr_scene_node* node = wlr_scene_node_at(
-        &scene->tree.node, cursorX_, cursorY_, &sx, &sy);
-
-    if (node && node->type == WLR_SCENE_NODE_BUFFER) {
-        auto* sceneBuf = wlr_scene_buffer_from_node(node);
-        auto* sceneSurface = wlr_scene_surface_try_from_buffer(sceneBuf);
-        if (sceneSurface) {
-            result.surface = sceneSurface->surface;
-            result.sx = sx;
-            result.sy = sy;
-            result.node = node;
+        if (node && node->type == WLR_SCENE_NODE_BUFFER) {
+            auto* sceneBuf = wlr_scene_buffer_from_node(node);
+            auto* sceneSurface = wlr_scene_surface_try_from_buffer(sceneBuf);
+            if (sceneSurface) {
+                result.surface = sceneSurface->surface;
+                result.sx = sx;
+                result.sy = sy;
+                result.node = node;
+                return result;
+            }
         }
+    }
+
+    double sx = 0.0;
+    double sy = 0.0;
+    if (auto* surface = manager_->getServer().getCompositor().getSurfaceAt(
+            cursorX_, cursorY_, &sx, &sy)) {
+        result.surface = surface->getWlrSurface();
+        result.sx = sx;
+        result.sy = sy;
     }
 
     return result;
@@ -268,9 +281,10 @@ void Pointer::handleButton(uint32_t button, wlr_button_state state, uint32_t tim
     if (pressed) {
         auto result = surfaceAtCursor();
         if (result.surface) {
-            // Focus the clicked surface for keyboard input too
-            wlr_seat_keyboard_notify_enter(manager_->getSeat(), result.surface,
-                nullptr, 0, nullptr);
+            if (auto* managedSurface = manager_->getServer().getCompositor().getSurfaceAt(
+                    cursorX_, cursorY_)) {
+                manager_->getServer().getCompositor().setFocusedSurface(managedSurface);
+            }
         }
     }
 

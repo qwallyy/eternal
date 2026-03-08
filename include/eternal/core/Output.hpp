@@ -210,6 +210,7 @@ private:
 
     /// Render a single wlr_surface and its subsurfaces at the given position.
     void renderSurfaceAt(struct wlr_render_pass* pass,
+                         Surface* owner,
                          struct wlr_surface* surface,
                          int sx, int sy,
                          pixman_region32_t* damage);

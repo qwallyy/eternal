@@ -21,6 +21,7 @@ namespace eternal {
 class ConfigManager;
 class WorkspaceManager;
 class InputManager;
+class AnimationEngine;
 class PluginManager;
 class Compositor;
 class XWaylandManager;
@@ -34,6 +35,7 @@ public:
     bool init();
     void run();
     void quit();
+    void scheduleAnimationTick();
 
     struct wl_display* getDisplay() const { return m_display; }
     wlr_backend* getBackend() const { return m_backend; }
@@ -47,6 +49,7 @@ public:
     ConfigManager& getConfigManager() { return *m_configManager; }
     WorkspaceManager& getWorkspaceManager() { return *m_workspaceManager; }
     InputManager& getInputManager() { return *m_inputManager; }
+    AnimationEngine& getAnimationEngine() { return *m_animationEngine; }
     PluginManager& getPluginManager() { return *m_pluginManager; }
     Compositor& getCompositor() { return *m_compositor; }
     XWaylandManager& getXWaylandManager() { return *m_xwaylandManager; }
@@ -61,6 +64,9 @@ private:
     bool initRenderer();
     bool initScene();
     bool initSubsystems();
+    int handleAnimationTimer();
+    bool startAnimationTimer();
+    void stopAnimationTimer();
     void setupSignalHandlers();
 
     struct wl_display* m_display = nullptr;
@@ -76,6 +82,7 @@ private:
     std::unique_ptr<ConfigManager> m_configManager;
     std::unique_ptr<WorkspaceManager> m_workspaceManager;
     std::unique_ptr<InputManager> m_inputManager;
+    std::unique_ptr<AnimationEngine> m_animationEngine;
     std::unique_ptr<PluginManager> m_pluginManager;
     std::unique_ptr<Compositor> m_compositor;
     std::unique_ptr<XWaylandManager> m_xwaylandManager;
@@ -85,6 +92,8 @@ private:
     bool m_running = false;
 
     struct wl_listener* m_newXdgSurfaceListener = nullptr;
+    struct wl_event_source* m_animationTimer = nullptr;
+    uint64_t m_lastAnimationTickMs = 0;
 };
 
 } // namespace eternal

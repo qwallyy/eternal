@@ -1,4 +1,5 @@
 #include "eternal/input/InputManager.hpp"
+#include "eternal/core/Server.hpp"
 #include "eternal/input/Keyboard.hpp"
 #include "eternal/input/Pointer.hpp"
 #include "eternal/input/Touch.hpp"
@@ -73,9 +74,10 @@ void InputManager::libinputLogHandler(libinput* /*li*/,
 // Construction / destruction
 // ---------------------------------------------------------------------------
 
-InputManager::InputManager(wlr_seat* seat, wlr_backend* backend, wlr_session* session,
+InputManager::InputManager(Server& server, wlr_seat* seat, wlr_backend* backend, wlr_session* session,
                            wlr_output_layout* outputLayout, wl_display* display)
-    : seat_(seat)
+    : server_(server)
+    , seat_(seat)
     , backend_(backend)
     , session_(session)
     , outputLayout_(outputLayout)
@@ -98,6 +100,7 @@ InputManager::InputManager(wlr_seat* seat, wlr_backend* backend, wlr_session* se
     initListener(cursorButtonListener_);
     initListener(cursorAxisListener_);
     initListener(cursorFrameListener_);
+    initListener(requestSetCursorListener_);
 
     initCursor();
 }
@@ -111,6 +114,7 @@ InputManager::~InputManager() {
         resetListener(cursorButtonListener_);
         resetListener(cursorAxisListener_);
         resetListener(cursorFrameListener_);
+        resetListener(requestSetCursorListener_);
         wlr_cursor_destroy(cursor_);
     }
     if (xcursorManager_) {
@@ -147,6 +151,9 @@ void InputManager::initCursor() {
 
     // Set default cursor image
     wlr_cursor_set_xcursor(cursor_, xcursorManager_, "default");
+
+    requestSetCursorListener_.notify = handleRequestSetCursor;
+    wl_signal_add(&seat_->events.request_set_cursor, &requestSetCursorListener_);
 }
 
 // ---------------------------------------------------------------------------
@@ -217,6 +224,21 @@ void InputManager::handleCursorAxis(wl_listener* listener, void* data) {
 void InputManager::handleCursorFrame(wl_listener* listener, void* /*data*/) {
     InputManager* self = wl_container_of(listener, self, cursorFrameListener_);
     self->pointer_->handleFrame();
+}
+
+void InputManager::handleRequestSetCursor(wl_listener* listener, void* data) {
+    InputManager* self = wl_container_of(listener, self, requestSetCursorListener_);
+    auto* event = static_cast<wlr_seat_pointer_request_set_cursor_event*>(data);
+    if (!self->cursor_ || !event) {
+        return;
+    }
+
+    if (self->seat_->pointer_state.focused_client != event->seat_client) {
+        return;
+    }
+
+    wlr_cursor_set_surface(self->cursor_, event->surface,
+                           event->hotspot_x, event->hotspot_y);
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +347,86 @@ Touch* InputManager::getTouch() const { return touch_.get(); }
 Tablet* InputManager::getTablet() const { return tablet_.get(); }
 KeybindManager* InputManager::getKeybindManager() const { return keybindManager_.get(); }
 GestureRecognizer* InputManager::getGestureRecognizer() const { return gestureRecognizer_.get(); }
+
+void InputManager::registerKeybindDispatcher(
+    const std::string& name,
+    std::function<void(const std::string&)> dispatcher) {
+    if (keybindManager_) {
+        keybindManager_->registerDispatcher(name, std::move(dispatcher));
+    }
+}
+
+void InputManager::clearKeybinds() {
+    if (keybindManager_) {
+        keybindManager_->clearBindings();
+    }
+}
+
+bool InputManager::addKeybind(const std::string& mods, const std::string& key,
+                              const std::string& dispatcher, const std::string& args,
+                              const std::string& submap) {
+    if (!keybindManager_) {
+        return false;
+    }
+
+    const std::string previousSubmap = keybindManager_->currentSubmap();
+    if (submap != previousSubmap) {
+        if (submap.empty()) {
+            keybindManager_->exitSubmap();
+        } else {
+            keybindManager_->enterSubmap(submap);
+        }
+    }
+
+    std::string bind = mods + ", " + key + ", " + dispatcher;
+    if (!args.empty()) {
+        bind += ", " + args;
+    }
+    const bool added = keybindManager_->addBind(bind);
+
+    if (submap != previousSubmap) {
+        if (previousSubmap.empty()) {
+            keybindManager_->exitSubmap();
+        } else {
+            keybindManager_->enterSubmap(previousSubmap);
+        }
+    }
+
+    return added;
+}
+
+bool InputManager::addMouseKeybind(const std::string& mods, const std::string& button,
+                                   const std::string& dispatcher, const std::string& args,
+                                   const std::string& submap) {
+    if (!keybindManager_) {
+        return false;
+    }
+
+    const std::string previousSubmap = keybindManager_->currentSubmap();
+    if (submap != previousSubmap) {
+        if (submap.empty()) {
+            keybindManager_->exitSubmap();
+        } else {
+            keybindManager_->enterSubmap(submap);
+        }
+    }
+
+    std::string bind = mods + ", " + button + ", " + dispatcher;
+    if (!args.empty()) {
+        bind += ", " + args;
+    }
+    const bool added = keybindManager_->addMouseBind(bind);
+
+    if (submap != previousSubmap) {
+        if (previousSubmap.empty()) {
+            keybindManager_->exitSubmap();
+        } else {
+            keybindManager_->enterSubmap(previousSubmap);
+        }
+    }
+
+    return added;
+}
 
 // ---------------------------------------------------------------------------
 // Input event processing (high-level API)

@@ -3,6 +3,8 @@
 #include "eternal/core/Output.hpp"
 #include "eternal/core/OutputManager.hpp"
 #include "eternal/core/Surface.hpp"
+#include "eternal/input/InputManager.hpp"
+#include "eternal/input/Keyboard.hpp"
 #include "eternal/workspace/WorkspaceManager.hpp"
 #include "eternal/utils/Logger.hpp"
 
@@ -122,6 +124,11 @@ Surface* Compositor::createSurface(wlr_xdg_toplevel* toplevel) {
         ptr->setOutput(m_activeOutput);
     }
 
+    // xdg-toplevel clients won't map until the compositor sends an initial
+    // configure. Without this, apps like kitty create wl_surfaces and then
+    // stay invisible forever waiting for the first configure round-trip.
+    ptr->sendConfigure();
+
     return ptr;
 }
 
@@ -174,7 +181,19 @@ void Compositor::setFocusedSurface(Surface* surface) {
 
     if (surface) {
         surface->setActivated(true);
-        surface->focus();
+        if (auto* wlrSurface = surface->getWlrSurface()) {
+            auto* seat = m_server.getSeat();
+            auto* keyboard = m_server.getInputManager().getKeyboard();
+            auto* wlrKeyboard = keyboard ? keyboard->getWlrKeyboard() : nullptr;
+            if (seat && wlrKeyboard) {
+                wlr_seat_set_keyboard(seat, wlrKeyboard);
+                wlr_seat_keyboard_notify_enter(seat, wlrSurface,
+                    wlrKeyboard->keycodes, wlrKeyboard->num_keycodes,
+                    &wlrKeyboard->modifiers);
+            }
+        }
+    } else if (auto* seat = m_server.getSeat()) {
+        wlr_seat_keyboard_notify_clear_focus(seat);
     }
 }
 

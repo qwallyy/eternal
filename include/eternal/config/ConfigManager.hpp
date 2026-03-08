@@ -94,7 +94,7 @@ struct DecorationConfig {
 // Animation
 // ---------------------------------------------------------------------------
 
-struct BezierCurve {
+struct ConfigBezierCurve {
     std::string name;
     float x1, y1, x2, y2;
 };
@@ -116,7 +116,7 @@ struct AnimationDef {
 struct AnimationConfig {
     bool enabled = true;
     float speed_multiplier = 1.0f;
-    std::unordered_map<std::string, BezierCurve> bezier_curves;
+    std::unordered_map<std::string, ConfigBezierCurve> bezier_curves;
     AnimationDef window_open;
     AnimationDef window_close;
     AnimationDef window_move;

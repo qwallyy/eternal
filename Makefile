@@ -4,6 +4,7 @@ DATADIR ?= $(PREFIX)/share
 MANDIR ?= $(DATADIR)/man
 SESSION_DIR ?= $(DATADIR)/wayland-sessions
 XSESSION_DIR ?= $(DATADIR)/xsessions
+SESSION_EXEC ?= $(BINDIR)/eternal-session
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
 JOBS ?= $(shell nproc 2>/dev/null || echo 4)
@@ -53,7 +54,16 @@ install:
 	install -Dm755 $(BUILD_DIR)/eternalctl $(DESTDIR)$(BINDIR)/eternalctl
 	install -Dm755 packaging/eternal-session $(DESTDIR)$(BINDIR)/eternal-session
 	install -Dm644 config/eternal.kdl $(DESTDIR)$(DATADIR)/eternal/eternal.kdl
-	install -Dm644 packaging/eternal.desktop $(DESTDIR)$(SESSION_DIR)/eternal.desktop
+	install -d $(DESTDIR)$(SESSION_DIR)
+	printf '%s\n' \
+		'[Desktop Entry]' \
+		'Name=Eternal' \
+		'Comment=A modern Wayland compositor with scrollable tiling and animations' \
+		'Exec=$(SESSION_EXEC)' \
+		'TryExec=$(SESSION_EXEC)' \
+		'Type=Application' \
+		'DesktopNames=eternal' \
+		> $(DESTDIR)$(SESSION_DIR)/eternal.desktop
 	install -Dm644 docs/eternal.1 $(DESTDIR)$(MANDIR)/man1/eternal.1
 
 uninstall:

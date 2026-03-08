@@ -1,3 +1,4 @@
+#include "eternal/animation/AnimationEngine.hpp"
 #include "eternal/core/Surface.hpp"
 #include "eternal/core/Output.hpp"
 #include "eternal/core/Server.hpp"
@@ -486,9 +487,7 @@ Surface::~Surface() {
 void Surface::focus() {
     if (!m_toplevel || !m_mapped) return;
 
-    // Set this toplevel as activated, deactivate the previous focused.
     m_server.getCompositor().setFocusedSurface(this);
-    setActivated(true);
 }
 
 void Surface::close() {
@@ -498,6 +497,13 @@ void Surface::close() {
 }
 
 void Surface::move(int x, int y) {
+    if (m_server.getAnimationEngine().isEnabled() && m_mapped) {
+        m_server.getAnimationEngine().animateGeometry(
+            this, x, y, m_geometry.width, m_geometry.height);
+        m_server.scheduleAnimationTick();
+        return;
+    }
+
     int oldX = m_geometry.x;
     int oldY = m_geometry.y;
 
@@ -862,6 +868,18 @@ void Surface::onMap(struct wl_listener* listener, void* data) {
             self->m_output = out;
             out->damageSurface(self);
         }
+    }
+
+    self->m_server.getCompositor().setFocusedSurface(self);
+
+    if (self->m_server.getAnimationEngine().isEnabled()) {
+        self->m_server.getAnimationEngine().animateWindowOpen(
+            self,
+            self->m_geometry.x,
+            self->m_geometry.y,
+            self->m_geometry.width,
+            self->m_geometry.height);
+        self->m_server.scheduleAnimationTick();
     }
 
     LOG_DEBUG("Surface '{}' mapped ({}x{} at {},{})",

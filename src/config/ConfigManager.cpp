@@ -535,12 +535,12 @@ void ConfigManager::applyDefaults() {
     debug_ = DebugConfig{};
 
     // Register default bezier curves
-    animation_.bezier_curves["default"] = BezierCurve{"default", 0.25f, 0.1f, 0.25f, 1.0f};
-    animation_.bezier_curves["linear"] = BezierCurve{"linear", 0.0f, 0.0f, 1.0f, 1.0f};
-    animation_.bezier_curves["ease"] = BezierCurve{"ease", 0.25f, 0.1f, 0.25f, 1.0f};
-    animation_.bezier_curves["easeIn"] = BezierCurve{"easeIn", 0.42f, 0.0f, 1.0f, 1.0f};
-    animation_.bezier_curves["easeOut"] = BezierCurve{"easeOut", 0.0f, 0.0f, 0.58f, 1.0f};
-    animation_.bezier_curves["easeInOut"] = BezierCurve{"easeInOut", 0.42f, 0.0f, 0.58f, 1.0f};
+    animation_.bezier_curves["default"] = ConfigBezierCurve{"default", 0.25f, 0.1f, 0.25f, 1.0f};
+    animation_.bezier_curves["linear"] = ConfigBezierCurve{"linear", 0.0f, 0.0f, 1.0f, 1.0f};
+    animation_.bezier_curves["ease"] = ConfigBezierCurve{"ease", 0.25f, 0.1f, 0.25f, 1.0f};
+    animation_.bezier_curves["easeIn"] = ConfigBezierCurve{"easeIn", 0.42f, 0.0f, 1.0f, 1.0f};
+    animation_.bezier_curves["easeOut"] = ConfigBezierCurve{"easeOut", 0.0f, 0.0f, 0.58f, 1.0f};
+    animation_.bezier_curves["easeInOut"] = ConfigBezierCurve{"easeInOut", 0.42f, 0.0f, 0.58f, 1.0f};
 }
 
 // ===========================================================================
@@ -690,11 +690,28 @@ void ConfigManager::parseAnimation() {
             else if (n == "style")   def.style = firstArgString(child, def.style);
             else if (n == "style_param") def.style_param = static_cast<float>(firstArgDouble(child, def.style_param));
         }
-        // Also accept inline: window_open 1.0 "slide" bezier="myBezier"
-        if (parent.arguments.size() >= 1)
-            def.speed = getFloat(parent.arguments[0], def.speed);
-        if (parent.arguments.size() >= 2)
-            def.style = getString(parent.arguments[1], def.style);
+        // Accept both of these inline forms:
+        //   window_open 1.0 "slide" bezier="myBezier"
+        //   window-open "slide" 300 "overshot"
+        if (parent.arguments.size() >= 1) {
+            if (auto* style = std::get_if<std::string>(&parent.arguments[0])) {
+                def.style = *style;
+                if (parent.arguments.size() >= 2) {
+                    def.speed = getFloat(parent.arguments[1], def.speed);
+                }
+                if (parent.arguments.size() >= 3) {
+                    def.bezier = getString(parent.arguments[2], def.bezier);
+                }
+            } else {
+                def.speed = getFloat(parent.arguments[0], def.speed);
+                if (parent.arguments.size() >= 2) {
+                    def.style = getString(parent.arguments[1], def.style);
+                }
+                if (parent.arguments.size() >= 3) {
+                    def.bezier = getString(parent.arguments[2], def.bezier);
+                }
+            }
+        }
         auto bezProp = getProp(parent, "bezier");
         if (auto* bs = std::get_if<std::string>(&bezProp))
             def.bezier = *bs;
@@ -710,7 +727,7 @@ void ConfigManager::parseAnimation() {
         else if (n == "bezier") {
             // bezier "name" x1 y1 x2 y2
             if (child.arguments.size() >= 5) {
-                BezierCurve curve;
+                ConfigBezierCurve curve;
                 curve.name = getString(child.arguments[0]);
                 curve.x1 = getFloat(child.arguments[1]);
                 curve.y1 = getFloat(child.arguments[2]);
@@ -721,7 +738,7 @@ void ConfigManager::parseAnimation() {
             // Also support properties: bezier name=x1=... format
             // bezier { name "ease-custom"; points 0.2 0.0 0.8 1.0 }
             if (!child.children.empty()) {
-                BezierCurve curve;
+                ConfigBezierCurve curve;
                 for (const auto& bc : child.children) {
                     if (bc.name == "name") curve.name = firstArgString(bc);
                     else if (bc.name == "points" && bc.arguments.size() >= 4) {
@@ -850,33 +867,73 @@ void ConfigManager::parseBinds() {
     const auto& doc = impl_->document;
     binds_.keybinds.clear();
 
-    auto parseSingleBind = [&](const KDLNode& child, BindFlag extraFlags,
-                               const std::string& currentSubmap) {
+    auto flagsForBindNodeName = [](const std::string& nodeName) {
+        if (nodeName == "bind")  return BindFlag::None;
+        if (nodeName == "binds") return BindFlag::None;
+        if (nodeName == "bindm") return BindFlag::Mouse;
+        if (nodeName == "bindl") return BindFlag::Locked;
+        if (nodeName == "bindr") return BindFlag::Release;
+        if (nodeName == "bindt") return BindFlag::Transparent;
+        if (nodeName == "binde") return BindFlag::Repeat;
+        return BindFlag::None;
+    };
+
+    auto parseInlineBindArgs = [](const KDLNode& node, Keybind& kb) -> bool {
+        if (node.arguments.size() < 3) {
+            return false;
+        }
+
+        kb.mods = parseMods(getString(node.arguments[0]));
+        kb.key = getString(node.arguments[1]);
+        kb.dispatcher = getString(node.arguments[2]);
+        if (node.arguments.size() >= 4) {
+            kb.args = getString(node.arguments[3]);
+        }
+        for (size_t i = 4; i < node.arguments.size(); ++i) {
+            if (!kb.args.empty()) {
+                kb.args += " ";
+            }
+            kb.args += getString(node.arguments[i]);
+        }
+        return true;
+    };
+
+    auto parseBindNode = [&](const KDLNode& node, BindFlag extraFlags,
+                             const std::string& currentSubmap) {
         Keybind kb;
         kb.flags = extraFlags;
         kb.submap = currentSubmap;
 
-        // Parse modifier flags from properties
-        auto modVal = getProp(child, "mods");
-        if (auto* modStr = std::get_if<std::string>(&modVal)) {
-            kb.mods = parseMods(*modStr);
+        const bool isInlineBindNode =
+            node.name == "bind" || node.name == "bindm" || node.name == "bindl" ||
+            node.name == "bindr" || node.name == "bindt" || node.name == "binde";
+
+        if (isInlineBindNode) {
+            if (!parseInlineBindArgs(node, kb)) {
+                return;
+            }
+            kb.flags = kb.flags | flagsForBindNodeName(node.name);
+        } else {
+            auto modVal = getProp(node, "mods");
+            if (auto* modStr = std::get_if<std::string>(&modVal)) {
+                kb.mods = parseMods(*modStr);
+            }
+
+            kb.key = node.name;
+
+            if (node.arguments.size() >= 1)
+                kb.dispatcher = getString(node.arguments[0]);
+            if (node.arguments.size() >= 2)
+                kb.args = getString(node.arguments[1]);
+            for (size_t i = 2; i < node.arguments.size(); ++i) {
+                if (!kb.args.empty()) {
+                    kb.args += " ";
+                }
+                kb.args += getString(node.arguments[i]);
+            }
         }
 
-        // Key from node name
-        kb.key = child.name;
-
-        // Dispatcher and args from arguments
-        if (child.arguments.size() >= 1)
-            kb.dispatcher = getString(child.arguments[0]);
-        if (child.arguments.size() >= 2)
-            kb.args = getString(child.arguments[1]);
-        // Join remaining arguments with space
-        for (size_t i = 3; i < child.arguments.size(); ++i) {
-            kb.args += " " + getString(child.arguments[i]);
-        }
-
-        // Flags from properties
-        auto flagVal = getProp(child, "flags");
+        auto flagVal = getProp(node, "flags");
         if (auto* flagStr = std::get_if<std::string>(&flagVal)) {
             kb.flags = kb.flags | parseBindFlags(*flagStr);
         }
@@ -884,49 +941,39 @@ void ConfigManager::parseBinds() {
         binds_.keybinds.push_back(std::move(kb));
     };
 
-    // Process bind variants: bind, bindm (mouse), bindl (locked),
-    // bindr (release), bindt (transparent), binds (with children)
+    auto processChildren = [&](const std::vector<KDLNode>& children,
+                               const std::string& currentSubmap,
+                               auto&& processChildrenRef) -> void {
+        for (const auto& child : children) {
+            if (child.name == "submap") {
+                processChildrenRef(child.children, firstArgString(child), processChildrenRef);
+                continue;
+            }
+
+            parseBindNode(child, flagsForBindNodeName(child.name), currentSubmap);
+        }
+    };
+
     auto processBindNodes = [&](const char* nodeName, BindFlag extraFlags) {
         for (const auto* node : doc.getNodes(nodeName)) {
-            // bind nodes with children (block form)
             if (!node->children.empty()) {
-                std::string currentSubmap;
-                for (const auto& child : node->children) {
-                    if (child.name == "submap") {
-                        // Enter a submap block
-                        currentSubmap = firstArgString(child);
-                        for (const auto& sc : child.children) {
-                            parseSingleBind(sc, extraFlags, currentSubmap);
-                        }
-                        currentSubmap.clear();
-                    } else {
-                        parseSingleBind(child, extraFlags, currentSubmap);
-                    }
-                }
-            }
-            // Inline bind: bind "SUPER" "Return" "exec" "alacritty"
-            else if (node->arguments.size() >= 3) {
-                Keybind kb;
-                kb.flags = extraFlags;
-                kb.mods = parseMods(getString(node->arguments[0]));
-                kb.key = getString(node->arguments[1]);
-                kb.dispatcher = getString(node->arguments[2]);
-                if (node->arguments.size() >= 4)
-                    kb.args = getString(node->arguments[3]);
-                for (size_t i = 4; i < node->arguments.size(); ++i)
-                    kb.args += " " + getString(node->arguments[i]);
-                binds_.keybinds.push_back(std::move(kb));
+                processChildren(node->children, {}, processChildren);
+            } else {
+                parseBindNode(*node, extraFlags, {});
             }
         }
     };
 
     processBindNodes("bind", BindFlag::None);
-    processBindNodes("binds", BindFlag::None);
     processBindNodes("bindm", BindFlag::Mouse);
     processBindNodes("bindl", BindFlag::Locked);
     processBindNodes("bindr", BindFlag::Release);
     processBindNodes("bindt", BindFlag::Transparent);
     processBindNodes("binde", BindFlag::Repeat);
+
+    for (const auto* node : doc.getNodes("binds")) {
+        processChildren(node->children, {}, processChildren);
+    }
 }
 
 void ConfigManager::parseGestures() {

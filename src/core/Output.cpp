@@ -427,6 +427,12 @@ void Output::renderFrame() {
 
         // Render all visible surfaces within the damage region.
         renderSurfaces(pass, &frame_damage);
+
+        // Real sessions in VMs often force software cursors. Without this,
+        // the compositor shows a blank screen with no pointer even though
+        // input is still arriving.
+        wlr_output_add_software_cursors_to_render_pass(
+            m_wlrOutput, pass, &frame_damage);
     }
 
     wlr_render_pass_submit(pass);
@@ -462,15 +468,16 @@ void Output::renderSurfaces(struct wlr_render_pass* pass,
         // Render the main surface and its full surface tree
         // (subsurfaces and popups).
         surface->forEachRenderSurface(
-            [this, pass, damage, ox, oy, &sg](
+            [this, pass, damage, ox, oy, surface = surface.get()](
                 struct wlr_surface* wlr_surf, int sx, int sy)
             {
-                renderSurfaceAt(pass, wlr_surf, ox + sx, oy + sy, damage);
+                renderSurfaceAt(pass, surface, wlr_surf, ox + sx, oy + sy, damage);
             });
     }
 }
 
 void Output::renderSurfaceAt(struct wlr_render_pass* pass,
+                              Surface* owner,
                               struct wlr_surface* surface,
                               int sx, int sy,
                               pixman_region32_t* damage)
@@ -507,6 +514,8 @@ void Output::renderSurfaceAt(struct wlr_render_pass* pass,
         .width  = surface->current.width,
         .height = surface->current.height,
     };
+    float alpha = owner ? owner->getOpacity() : 1.0f;
+    opts.alpha = alpha < 0.999f ? &alpha : nullptr;
     opts.clip = &visible;
 
     // Apply per-surface transform if any.

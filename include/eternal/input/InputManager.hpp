@@ -25,6 +25,7 @@ struct wlr_scene;
 
 namespace eternal {
 
+class Server;
 class Keyboard;
 class Pointer;
 class Touch;
@@ -67,7 +68,7 @@ struct InputDeviceConfig {
 
 class InputManager {
 public:
-    InputManager(wlr_seat* seat, wlr_backend* backend, wlr_session* session,
+    InputManager(Server& server, wlr_seat* seat, wlr_backend* backend, wlr_session* session,
                  wlr_output_layout* outputLayout, wl_display* display);
     ~InputManager();
 
@@ -85,6 +86,16 @@ public:
     [[nodiscard]] Tablet* getTablet() const;
     [[nodiscard]] KeybindManager* getKeybindManager() const;
     [[nodiscard]] GestureRecognizer* getGestureRecognizer() const;
+
+    void registerKeybindDispatcher(const std::string& name,
+                                   std::function<void(const std::string&)> dispatcher);
+    void clearKeybinds();
+    bool addKeybind(const std::string& mods, const std::string& key,
+                    const std::string& dispatcher, const std::string& args = {},
+                    const std::string& submap = {});
+    bool addMouseKeybind(const std::string& mods, const std::string& button,
+                         const std::string& dispatcher, const std::string& args = {},
+                         const std::string& submap = {});
 
     // Input event processing
     void processKeyPress(uint32_t key, uint32_t mods, wl_keyboard_key_state state);
@@ -113,6 +124,7 @@ public:
     [[nodiscard]] wlr_output_layout* getOutputLayout() const { return outputLayout_; }
     [[nodiscard]] wl_display* getDisplay() const { return display_; }
     [[nodiscard]] wlr_scene* getScene() const { return scene_; }
+    [[nodiscard]] Server& getServer() const { return server_; }
 
     void setScene(wlr_scene* scene) { scene_ = scene; }
 
@@ -125,6 +137,7 @@ public:
                                    const char* fmt, va_list args);
 
 private:
+    Server& server_;
     wlr_seat* seat_ = nullptr;
     wlr_backend* backend_ = nullptr;
     wlr_session* session_ = nullptr;
@@ -160,6 +173,7 @@ private:
     wl_listener cursorButtonListener_ = {};
     wl_listener cursorAxisListener_ = {};
     wl_listener cursorFrameListener_ = {};
+    wl_listener requestSetCursorListener_ = {};
 
     static void handleNewInput(wl_listener* listener, void* data);
     static void handleCursorMotion(wl_listener* listener, void* data);
@@ -167,6 +181,7 @@ private:
     static void handleCursorButton(wl_listener* listener, void* data);
     static void handleCursorAxis(wl_listener* listener, void* data);
     static void handleCursorFrame(wl_listener* listener, void* data);
+    static void handleRequestSetCursor(wl_listener* listener, void* data);
     static void handleDeviceDestroy(wl_listener* listener, void* data);
 
     void configureLibinputDevice(wlr_input_device* device);

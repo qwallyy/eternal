@@ -251,6 +251,11 @@ AnimationID AnimationEngine::animateWindowOpen(Surface* surface,
     float duration = m_windowAnimConfig.openDuration_ms;
     const auto& curve = m_windowAnimConfig.openCurve;
 
+    // Avoid resizing the client every frame during the open effect. That
+    // causes configure churn and unstable startup for real toplevels.
+    const int targetY = y;
+    int initialY = y;
+
     // Group animation ID for the whole open sequence
     AnimationID groupId = allocateId();
 
@@ -259,41 +264,36 @@ AnimationID AnimationEngine::animateWindowOpen(Surface* surface,
     float opacityFrom = 0.0f;
     float opacityTo = 1.0f;
 
-    // Scale animation
-    AnimationID scaleId = allocateId();
-    float scaleFrom = 0.8f;
-    float scaleTo = 1.0f;
-
     // Position offset animation
     AnimationID slideId = allocateId();
     float slideFrom = 0.0f;
-    float slideTo = 0.0f;
 
     switch (style) {
     case WindowAnimStyle::Slide:
         slideFrom = static_cast<float>(h) * 0.3f; // Slide up from below
-        scaleFrom = 1.0f; // No scale for pure slide
         break;
     case WindowAnimStyle::Fade:
-        scaleFrom = 1.0f; // No scale for pure fade
         break;
     case WindowAnimStyle::Zoom:
-        scaleFrom = 0.0f; // Scale from 0
         opacityFrom = 0.5f;
         break;
     case WindowAnimStyle::PopIn:
-        scaleFrom = 0.6f;
-        // Use overshot curve for bounce effect
-        create(scaleId, scaleFrom, scaleTo, duration, "overshot");
-        // Override the default scale creation below
+        slideFrom = static_cast<float>(h) * 0.08f;
         break;
     case WindowAnimStyle::SlideFade:
         slideFrom = static_cast<float>(h) * 0.15f;
-        scaleFrom = 0.8f;
         break;
     case WindowAnimStyle::None:
         return 0;
     }
+
+    if (style == WindowAnimStyle::Zoom) {
+        slideFrom = static_cast<float>(h) * 0.04f;
+    }
+
+    initialY = y + static_cast<int>(slideFrom);
+    surface->setOpacity(opacityFrom);
+    surface->setGeometry(x, initialY, w, h);
 
     // Create opacity animation
     {
@@ -305,42 +305,14 @@ AnimationID AnimationEngine::animateWindowOpen(Surface* surface,
         }
     }
 
-    // Create scale animation (unless PopIn already created one)
-    if (style != WindowAnimStyle::PopIn) {
-        AnimationID id = create(scaleId, scaleFrom, scaleTo, duration, curve);
-        if (auto* anim = getAnimation(id)) {
-            anim->onUpdate = [surface, x, y, w, h](float scale) {
-                if (!surface) return;
-                int sw = static_cast<int>(w * scale);
-                int sh = static_cast<int>(h * scale);
-                int sx = x + (w - sw) / 2;
-                int sy = y + (h - sh) / 2;
-                surface->setGeometry(sx, sy, sw, sh);
-            };
-        }
-    } else {
-        // PopIn already created above; add geometry callback
-        if (auto* anim = getAnimation(scaleId)) {
-            anim->onUpdate = [surface, x, y, w, h](float scale) {
-                if (!surface) return;
-                int sw = static_cast<int>(w * scale);
-                int sh = static_cast<int>(h * scale);
-                int sx = x + (w - sw) / 2;
-                int sy = y + (h - sh) / 2;
-                surface->setGeometry(sx, sy, sw, sh);
-            };
-        }
-    }
-
     // Create slide animation if needed
     if (std::fabs(slideFrom) > 0.01f) {
-        AnimationID id = create(slideId, slideFrom, slideTo, duration, curve);
+        AnimationID id = create(slideId, static_cast<float>(initialY),
+                                static_cast<float>(targetY), duration, curve);
         if (auto* anim = getAnimation(id)) {
-            anim->onUpdate = [surface, x, y, w, h](float offset) {
+            anim->onUpdate = [surface, x, w, h](float currentY) {
                 if (!surface) return;
-                auto geo = surface->getGeometry();
-                surface->setGeometry(geo.x, y + static_cast<int>(offset),
-                                     geo.width, geo.height);
+                surface->setGeometry(x, static_cast<int>(currentY), w, h);
             };
         }
     }
@@ -512,6 +484,18 @@ void AnimationEngine::animateGeometry(Surface* surface,
     };
 
     Surface* surfPtr = surface;
+    auto markGeometryAnimationComplete = [this, surfPtr]() {
+        auto gIt = m_geometryAnims.find(surfPtr);
+        if (gIt == m_geometryAnims.end()) {
+            return;
+        }
+
+        auto& g = gIt->second;
+        if (!isAnimating(g.xAnim) && !isAnimating(g.yAnim) &&
+            !isAnimating(g.wAnim) && !isAnimating(g.hAnim)) {
+            g.active = false;
+        }
+    };
 
     // Animate X
     if (m_moveResizeConfig.enableMoveAnim && curX != newX) {
@@ -524,6 +508,7 @@ void AnimationEngine::animateGeometry(Surface* surface,
                 auto geo = surfPtr->getGeometry();
                 surfPtr->setGeometry(static_cast<int>(val), geo.y, geo.width, geo.height);
             };
+            anim->onComplete = markGeometryAnimationComplete;
         }
     } else {
         ga.xAnim = 0;
@@ -540,6 +525,7 @@ void AnimationEngine::animateGeometry(Surface* surface,
                 auto geo = surfPtr->getGeometry();
                 surfPtr->setGeometry(geo.x, static_cast<int>(val), geo.width, geo.height);
             };
+            anim->onComplete = markGeometryAnimationComplete;
         }
     } else {
         ga.yAnim = 0;
@@ -556,6 +542,7 @@ void AnimationEngine::animateGeometry(Surface* surface,
                 auto geo = surfPtr->getGeometry();
                 surfPtr->setGeometry(geo.x, geo.y, static_cast<int>(val), geo.height);
             };
+            anim->onComplete = markGeometryAnimationComplete;
         }
     } else {
         ga.wAnim = 0;
@@ -576,10 +563,9 @@ void AnimationEngine::animateGeometry(Surface* surface,
             anim->onComplete = [surfPtr, this]() {
                 auto gIt = m_geometryAnims.find(surfPtr);
                 if (gIt != m_geometryAnims.end()) {
-                    // Check if all component anims are done
                     auto& g = gIt->second;
                     if (!isAnimating(g.xAnim) && !isAnimating(g.yAnim) &&
-                        !isAnimating(g.wAnim)) {
+                        !isAnimating(g.wAnim) && !isAnimating(g.hAnim)) {
                         g.active = false;
                     }
                 }
@@ -593,6 +579,7 @@ void AnimationEngine::animateGeometry(Surface* surface,
     if (ga.xAnim == 0 && ga.yAnim == 0 && ga.wAnim == 0 && ga.hAnim == 0) {
         surface->setGeometry(newX, newY, newW, newH);
         ga.active = false;
+        return;
     }
 }
 
