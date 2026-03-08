@@ -8,7 +8,60 @@ extern "C" {
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
+#include <sys/stat.h>
 #include <string>
+#include <unistd.h>
+
+static bool envEnabled(const char* name) {
+    const char* value = std::getenv(name);
+    return value && std::strcmp(value, "1") == 0;
+}
+
+static bool hasEnvValue(const char* name) {
+    const char* value = std::getenv(name);
+    return value && value[0] != '\0';
+}
+
+static bool isUsableSeatdSocket(const char* path) {
+    struct stat st {};
+    if (!path || path[0] == '\0') {
+        return false;
+    }
+    if (stat(path, &st) != 0 || !S_ISSOCK(st.st_mode)) {
+        return false;
+    }
+    return access(path, R_OK | W_OK) == 0;
+}
+
+static void chooseSeatBackend() {
+    const char* current_backend = std::getenv("LIBSEAT_BACKEND");
+    const char* seatd_sock = std::getenv("SEATD_SOCK");
+    if (!seatd_sock || seatd_sock[0] == '\0') {
+        seatd_sock = "/run/seatd.sock";
+    }
+
+    const bool has_logind_session = hasEnvValue("XDG_SESSION_ID");
+    const bool usable_seatd_socket = isUsableSeatdSocket(seatd_sock);
+
+    if (current_backend && std::strcmp(current_backend, "seatd") == 0 &&
+        !usable_seatd_socket && !envEnabled("ETERNAL_FORCE_SEATD")) {
+        if (has_logind_session) {
+            LOG_WARN("seatd backend requested but {} is not usable; falling back to logind",
+                     seatd_sock);
+            setenv("LIBSEAT_BACKEND", "logind", 1);
+        } else {
+            LOG_WARN("seatd backend requested but {} is not usable; clearing override",
+                     seatd_sock);
+            unsetenv("LIBSEAT_BACKEND");
+        }
+        return;
+    }
+
+    if (!current_backend && has_logind_session) {
+        setenv("LIBSEAT_BACKEND", "logind", 1);
+        LOG_INFO("Using logind seat backend for session {}", std::getenv("XDG_SESSION_ID"));
+    }
+}
 
 static void printUsage(const char* argv0) {
     std::cerr << "Usage: " << argv0 << " [options]\n"
@@ -62,10 +115,7 @@ int main(int argc, char* argv[]) {
 
     // Avoid hard-lock behavior when users accidentally launch the compositor
     // from inside an existing X11/Wayland desktop session.
-    const bool allow_nested = []() {
-        const char* env = std::getenv("ETERNAL_ALLOW_NESTED");
-        return env && std::strcmp(env, "1") == 0;
-    }();
+    const bool allow_nested = envEnabled("ETERNAL_ALLOW_NESTED");
     const bool has_x11 = []() {
         const char* env = std::getenv("DISPLAY");
         return env && env[0] != '\0';
@@ -84,6 +134,7 @@ int main(int argc, char* argv[]) {
     // -----------------------------------------------------------------------
     // Initialise wlroots
     // -----------------------------------------------------------------------
+    chooseSeatBackend();
     wlr_log_init(debug ? WLR_DEBUG : WLR_INFO, nullptr);
 
     (void)enable_xwayland; // TODO: thread this into the runtime server
