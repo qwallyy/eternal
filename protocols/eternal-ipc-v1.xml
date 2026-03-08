@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="eternal_ipc_v1">
+  <copyright>
+    Copyright (c) 2024-2026 Eternal Compositor Authors
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
+  </copyright>
+
+  <description summary="Eternal compositor IPC protocol">
+    This protocol allows privileged clients to control and query the
+    Eternal compositor state, including window management, workspace
+    operations, and configuration changes.
+  </description>
+
+  <interface name="eternal_ipc_manager_v1" version="1">
+    <description summary="manager for IPC operations">
+      The IPC manager provides the entry point for clients to interact
+      with the compositor's internal state.
+    </description>
+
+    <request name="dispatch">
+      <description summary="execute a dispatcher command">
+        Execute a named dispatcher command with optional arguments.
+      </description>
+      <arg name="command" type="string" summary="dispatcher command name"/>
+      <arg name="args" type="string" summary="command arguments"/>
+    </request>
+
+    <request name="get_windows">
+      <description summary="query window list">
+        Request the current window list as JSON.
+      </description>
+    </request>
+
+    <request name="get_workspaces">
+      <description summary="query workspace list">
+        Request the current workspace list as JSON.
+      </description>
+    </request>
+
+    <request name="get_monitors">
+      <description summary="query monitor list">
+        Request the current monitor list as JSON.
+      </description>
+    </request>
+
+    <request name="subscribe">
+      <description summary="subscribe to events">
+        Subscribe to compositor events of the given type.
+      </description>
+      <arg name="event_mask" type="uint" summary="bitmask of event types"/>
+    </request>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the IPC manager">
+        Destroy the IPC manager object.
+      </description>
+    </request>
+
+    <event name="response">
+      <description summary="command response">
+        Response to a dispatch, get_windows, get_workspaces, or
+        get_monitors request.
+      </description>
+      <arg name="request_id" type="uint" summary="id of the request"/>
+      <arg name="success" type="uint" summary="1 if successful, 0 if error"/>
+      <arg name="data" type="string" summary="JSON response data"/>
+    </event>
+
+    <event name="window_event">
+      <description summary="window state change">
+        Notification of a window state change.
+      </description>
+      <arg name="event_type" type="uint" summary="type of window event"/>
+      <arg name="window_id" type="uint" summary="window identifier"/>
+      <arg name="data" type="string" summary="JSON event data"/>
+    </event>
+
+    <event name="workspace_event">
+      <description summary="workspace state change">
+        Notification of a workspace state change.
+      </description>
+      <arg name="event_type" type="uint" summary="type of workspace event"/>
+      <arg name="workspace_id" type="uint" summary="workspace identifier"/>
+      <arg name="data" type="string" summary="JSON event data"/>
+    </event>
+
+    <enum name="event_type">
+      <entry name="window_open" value="1"/>
+      <entry name="window_close" value="2"/>
+      <entry name="window_move" value="4"/>
+      <entry name="window_resize" value="8"/>
+      <entry name="window_focus" value="16"/>
+      <entry name="window_fullscreen" value="32"/>
+      <entry name="window_float" value="64"/>
+      <entry name="workspace_create" value="128"/>
+      <entry name="workspace_destroy" value="256"/>
+      <entry name="workspace_switch" value="512"/>
+      <entry name="monitor_add" value="1024"/>
+      <entry name="monitor_remove" value="2048"/>
+      <entry name="layout_change" value="4096"/>
+      <entry name="config_reload" value="8192"/>
+    </enum>
+  </interface>
+</protocol>

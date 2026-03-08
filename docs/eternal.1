@@ -1,0 +1,154 @@
+.TH ETERNAL 1 "2026-03-08" "eternal 0.1.0" "Eternal Wayland Compositor"
+.
+.SH NAME
+eternal \- a modern Wayland compositor with scrollable tiling and animations
+.
+.SH SYNOPSIS
+.B eternal
+.RB [ \-c
+.IR config ]
+.RB [ \-d ]
+.RB [ \-v ]
+.RB [ \-h ]
+.
+.SH DESCRIPTION
+.B Eternal
+is a high-performance Wayland compositor featuring multiple tiling
+layouts (scrollable, dwindle, master-stack, monocle, grid, spiral,
+columns), spring and bezier curve animations, window rules, IPC control,
+a plugin system, and comprehensive keybind configuration.
+.PP
+Eternal is designed for users who want a tiling compositor with smooth
+animations and a modern feel, taking inspiration from Hyprland, Niri,
+and Sway.
+.
+.SH OPTIONS
+.TP
+.BI \-c\  config
+Path to the configuration file. Defaults to
+.IR $XDG_CONFIG_HOME/eternal/eternal.kdl .
+.TP
+.B \-d
+Enable debug logging. Equivalent to setting the
+.B ETERNAL_LOG
+environment variable to
+.BR debug .
+.TP
+.B \-v
+Print version information and exit.
+.TP
+.B \-h
+Print usage help and exit.
+.
+.SH CONFIGURATION
+The configuration file uses the KDL document language (https://kdl.dev).
+The default configuration is installed to
+.IR /usr/share/eternal/eternal.kdl
+and can be copied to
+.IR $XDG_CONFIG_HOME/eternal/eternal.kdl
+for customization.
+.PP
+Key configuration sections:
+.TP
+.B general
+General compositor settings (gaps, border width, layout, etc.)
+.TP
+.B input
+Input device configuration (keyboard repeat rate, pointer acceleration, etc.)
+.TP
+.B decoration
+Window decoration settings (borders, shadows, rounded corners, titlebar)
+.TP
+.B animation
+Animation curves and durations for window movements, workspace transitions, etc.
+.TP
+.B binds
+Keybind definitions (key combinations mapped to compositor actions)
+.TP
+.B rules
+Window rules (match windows by title/class and apply settings)
+.TP
+.B workspaces
+Workspace definitions and default layouts
+.
+.SH LAYOUTS
+.TP
+.B scrollable
+Niri-style infinite horizontal scrolling layout with variable-width columns.
+.TP
+.B dwindle
+Binary tree dwindle layout; each new window splits the current tile.
+.TP
+.B master
+Master-stack layout with a configurable master area and orientation.
+.TP
+.B monocle
+Fullscreen single-window layout with a window switcher.
+.TP
+.B grid
+Equal-sized grid arrangement.
+.TP
+.B spiral
+Fibonacci spiral tiling.
+.TP
+.B columns
+Fixed equal-width column layout.
+.
+.SH IPC
+When built with IPC support, Eternal listens on a Unix socket at
+.IR $XDG_RUNTIME_DIR/eternal.sock .
+.PP
+The
+.BR eternalctl (1)
+CLI tool communicates with the compositor over this socket to query state
+and dispatch commands.
+.PP
+Example commands:
+.PP
+.nf
+eternalctl dispatch workspace 3
+eternalctl dispatch focuswindow next
+eternalctl query activewindow
+eternalctl query workspaces
+eternalctl reload
+.fi
+.
+.SH ENVIRONMENT
+.TP
+.B ETERNAL_LOG
+Set the log level:
+.BR trace ", " debug ", " info ", " warn ", " error ", " critical .
+.TP
+.B WAYLAND_DISPLAY
+The Wayland display socket name. Set automatically by Eternal on startup.
+.TP
+.B XDG_CONFIG_HOME
+Base directory for user configuration. Defaults to
+.IR $HOME/.config .
+.TP
+.B XDG_RUNTIME_DIR
+Runtime directory for the IPC socket and Wayland socket.
+.
+.SH FILES
+.TP
+.I $XDG_CONFIG_HOME/eternal/eternal.kdl
+User configuration file.
+.TP
+.I /usr/share/eternal/eternal.kdl
+Default configuration file.
+.TP
+.I $XDG_RUNTIME_DIR/eternal.sock
+IPC socket.
+.
+.SH SEE ALSO
+.BR eternalctl (1),
+.BR wayland (7),
+.BR wlroots (7),
+.BR sway (1),
+.BR hyprland (1)
+.
+.SH BUGS
+Report bugs at https://github.com/eternal-wm/eternal/issues
+.
+.SH AUTHORS
+The Eternal developers.

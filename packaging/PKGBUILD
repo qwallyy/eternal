@@ -1,0 +1,79 @@
+# Maintainer: Eternal Developers <eternal@example.com>
+
+pkgname=eternal
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A modern Wayland compositor with scrollable tiling, animations, and IPC"
+arch=('x86_64' 'aarch64')
+url="https://github.com/eternal-wm/eternal"
+license=('MIT')
+depends=(
+    'wayland'
+    'wayland-protocols'
+    'wlroots-0.18>=0.18.0'
+    'libxkbcommon'
+    'libinput'
+    'pixman'
+    'libdrm'
+    'mesa'
+    'xcb-util'
+    'xcb-util-wm'
+)
+makedepends=(
+    'cmake'
+    'ninja'
+    'pkgconf'
+    'wayland-protocols'
+)
+optdepends=(
+    'xorg-xwayland: XWayland support for legacy X11 apps'
+    'polkit: authentication agent'
+    'grim: screenshot utility'
+    'slurp: screen region selector'
+    'mako: notification daemon'
+    'waybar: status bar'
+)
+provides=('eternal' 'eternalctl')
+conflicts=()
+backup=('etc/eternal/eternal.kdl')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/eternal-wm/eternal/archive/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cmake -B build -S "${pkgname}-${pkgver}" \
+        -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DETERNAL_ENABLE_XWAYLAND=ON \
+        -DETERNAL_ENABLE_IPC=ON \
+        -DETERNAL_ENABLE_PLUGINS=ON \
+        -DETERNAL_ENABLE_SCREENCOPY=ON \
+        -DETERNAL_BUILD_CLI=ON
+
+    cmake --build build
+}
+
+check() {
+    cd build
+    ctest --output-on-failure
+}
+
+package() {
+    DESTDIR="${pkgdir}" cmake --install build
+
+    # Install config
+    install -Dm644 "${pkgname}-${pkgver}/config/eternal.kdl" \
+        "${pkgdir}/etc/eternal/eternal.kdl"
+
+    # Install desktop entry
+    install -Dm644 "${pkgname}-${pkgver}/packaging/eternal.desktop" \
+        "${pkgdir}/usr/share/wayland-sessions/eternal.desktop"
+
+    # Install man page
+    install -Dm644 "${pkgname}-${pkgver}/docs/eternal.1" \
+        "${pkgdir}/usr/share/man/man1/eternal.1"
+
+    # Install license
+    install -Dm644 "${pkgname}-${pkgver}/LICENSE" \
+        "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

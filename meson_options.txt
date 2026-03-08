@@ -1,0 +1,5 @@
+option('xwayland',  type : 'boolean', value : true,  description : 'Enable XWayland support')
+option('ipc',       type : 'boolean', value : true,  description : 'Enable IPC server')
+option('plugins',   type : 'boolean', value : true,  description : 'Enable plugin system')
+option('screencopy', type : 'boolean', value : true,  description : 'Enable screenshot/recording')
+option('cli',       type : 'boolean', value : true,  description : 'Build eternalctl CLI tool')

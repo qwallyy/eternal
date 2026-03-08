@@ -1,0 +1,63 @@
+# ── Build directories ─────────────────────────────────────────────────────────
+build/
+builddir/
+cmake-build-*/
+out/
+
+# ── CMake ─────────────────────────────────────────────────────────────────────
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+install_manifest.txt
+CTestTestfile.cmake
+
+# ── Meson ─────────────────────────────────────────────────────────────────────
+subprojects/
+.meson/
+
+# ── Generated protocol files ─────────────────────────────────────────────────
+*-protocol.c
+*-protocol.h
+
+# ── Compiled objects ──────────────────────────────────────────────────────────
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.lib
+*.exe
+
+# ── Debug ─────────────────────────────────────────────────────────────────────
+*.dSYM/
+*.d
+*.gcno
+*.gcda
+*.gcov
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cache/
+.ccls-cache/
+.clangd/
+.clang-format-ignore
+
+# ── OS junk ───────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.orig
+*.bak
+*.tmp
+core
+core.*

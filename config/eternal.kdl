@@ -1,0 +1,697 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    ETERNAL COMPOSITOR CONFIG                    ║
+// ║          Hybrid Scrollable-Tiling Wayland Compositor            ║
+// ║                   Configuration in KDL format                   ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+// ─────────────────────────────────────────────────────────────────────
+// General Settings
+// ─────────────────────────────────────────────────────────────────────
+general {
+    // Default layout engine: scrollable, dwindle, master, monocle,
+    //                        floating, grid, spiral, columns
+    layout "scrollable"
+
+    // Border settings
+    border-size 2
+    no-border-when-only false
+
+    // Gap settings (pixels)
+    gaps-in 5
+    gaps-out 10
+
+    // Focus behavior
+    focus-follows-mouse true
+    mouse-refocus true
+    focus-on-activate true
+    focus-on-map true
+
+    // Cursor
+    cursor-theme "Adwaita"
+    cursor-size 24
+    cursor-inactive-timeout 5
+
+    // Misc
+    disable-autoreload false
+    vrr 0              // 0=off, 1=on, 2=fullscreen-only
+    allow-tearing false
+    force-default-wallpaper true
+    always-follow-on-dnd true
+    float-switch-dir-fix true
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Decoration Settings
+// ─────────────────────────────────────────────────────────────────────
+decoration {
+    // Rounded corners
+    rounding 10
+
+    // Opacity
+    active-opacity 1.0
+    inactive-opacity 0.93
+    fullscreen-opacity 1.0
+
+    // Dim inactive
+    dim-inactive true
+    dim-strength 0.15
+
+    // Shadow
+    shadow {
+        enabled true
+        range 15
+        render-power 3
+        color "rgba(0,0,0,0.55)"
+        offset-x 0
+        offset-y 4
+        scale 1.0
+    }
+
+    // Blur (Dual-Kawase)
+    blur {
+        enabled true
+        size 8
+        passes 3
+        noise 0.015
+        contrast 0.9
+        brightness 0.85
+        vibrancy 0.2
+        vibrancy-darkness 0.0
+        popups true
+        xwayland true
+    }
+
+    // Border gradient
+    border {
+        active-color "rgba(88,91,112,1.0)"
+        inactive-color "rgba(49,50,68,0.8)"
+
+        // Gradient borders (overrides solid colors when enabled)
+        gradient {
+            enabled true
+            active-colors "rgba(137,180,250,1.0)" "rgba(203,166,247,1.0)"
+            inactive-colors "rgba(88,91,112,0.6)" "rgba(108,112,134,0.6)"
+            angle 45
+            color-space "oklab"
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Animation Settings
+// ─────────────────────────────────────────────────────────────────────
+animations {
+    enabled true
+    speed-multiplier 1.0
+
+    // Define custom bezier curves
+    bezier "smoothOut" 0.36 0.0 0.66 -0.56
+    bezier "smoothIn" 0.25 1.0 0.5 1.0
+    bezier "overshot" 0.05 0.9 0.1 1.1
+    bezier "easeInOut" 0.42 0.0 0.58 1.0
+    bezier "spring" 0.15 1.2 0.3 1.0
+
+    // Animation types: style, duration(ms), curve
+    window-open "slide" 300 "overshot"
+    window-close "slide" 250 "smoothOut"
+    window-move "slide" 200 "easeInOut"
+    window-resize "crossfade" 150 "easeInOut"
+
+    fade-in 200 "smoothIn"
+    fade-out 200 "smoothOut"
+
+    workspace-switch "slide" 300 "easeInOut"
+    workspace-scroll "spring" 400 "spring"
+
+    // Spring physics for scrollable layout
+    spring {
+        stiffness 400.0
+        damping 30.0
+        mass 1.0
+        rest-threshold 0.001
+    }
+
+    border-color 250 "smoothIn"
+    shadow 200 "easeInOut"
+    dim 200 "smoothIn"
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Input Settings
+// ─────────────────────────────────────────────────────────────────────
+input {
+    keyboard {
+        layout "us"
+        variant ""
+        model ""
+        options ""
+        rules ""
+        repeat-rate 50
+        repeat-delay 300
+        numlock-by-default true
+        capslock-by-default false
+        resolve-binds-by-sym true
+    }
+
+    touchpad {
+        disable-while-typing true
+        natural-scroll true
+        scroll-factor 1.0
+        middle-emulation false
+        tap-button-map "lrm"
+        tap-to-click true
+        drag true
+        drag-lock false
+        dwt true
+        accel-profile "adaptive"
+        sensitivity 0.0
+    }
+
+    pointer {
+        natural-scroll false
+        accel-profile "flat"
+        sensitivity 0.0
+        scroll-factor 1.0
+        left-handed false
+    }
+
+    tablet {
+        output ""
+        region-position 0 0
+        region-size 0 0
+        relative-input false
+        transform 0
+    }
+
+    // Per-device overrides
+    //device "my-mouse" {
+    //    sensitivity -0.5
+    //    accel-profile "flat"
+    //}
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Gesture Settings
+// ─────────────────────────────────────────────────────────────────────
+gestures {
+    // Trackpad gestures
+    swipe {
+        fingers 3 {
+            left "workspace next"
+            right "workspace prev"
+            up "toggleoverview"
+            down "togglespecialworkspace"
+        }
+        fingers 4 {
+            left "movetoworkspace next"
+            right "movetoworkspace prev"
+            up "fullscreen 1"
+            down "killactive"
+        }
+    }
+
+    pinch {
+        fingers 3 {
+            in "zoomin"
+            out "zoomout"
+        }
+        fingers 4 {
+            in "toggleoverview"
+            out "toggleoverview"
+        }
+    }
+
+    hold {
+        fingers 3 "togglefloating"
+    }
+
+    // Touch edge gestures
+    edge {
+        left "focuswindow l"
+        right "focuswindow r"
+        top "toggleoverview"
+        bottom "togglespecialworkspace"
+        sensitivity 20
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Layout-Specific Settings
+// ─────────────────────────────────────────────────────────────────────
+
+// Scrollable layout (Niri-style infinite horizontal strip)
+layout-scrollable {
+    column-default-width "proportion" 0.5
+    center-focused-column "on-overflow"   // never, always, on-overflow
+    preset-column-widths {
+        proportion 0.333
+        proportion 0.5
+        proportion 0.667
+        fixed 800
+        fixed 1200
+    }
+    default-column-display "normal"   // normal, tabbed
+    gaps-between-columns 16
+    struts {
+        left 0
+        right 0
+        top 0
+        bottom 0
+    }
+    focus-ring {
+        width 2
+        active-color "rgba(137,180,250,1.0)"
+        inactive-color "rgba(88,91,112,0.6)"
+    }
+}
+
+// Dwindle layout (Hyprland-style)
+layout-dwindle {
+    pseudotile false
+    force-split 0     // 0=follow mouse, 1=always left, 2=always right
+    preserve-split true
+    smart-split false
+    smart-resizing true
+    no-gaps-when-only false
+    special-scale 0.8
+    split-width-multiplier 1.0
+    use-active-for-splits true
+    default-split-ratio 1.0
+}
+
+// Master layout
+layout-master {
+    new-on-top false
+    new-is-master false
+    no-gaps-when-only false
+    orientation "left"   // left, right, top, bottom, center
+    mfact 0.55
+    special-scale 0.8
+    inherit-fullscreen true
+    always-center-master false
+    smart-resizing true
+    drop-at-cursor true
+}
+
+// Monocle layout
+layout-monocle {
+    show-window-count true
+    auto-fullscreen true
+    auto-next-on-close true
+    single-window-no-border true
+}
+
+// Floating layout
+layout-floating {
+    smart-placement true
+    center-new-windows true
+    cascade-offset-x 30
+    cascade-offset-y 30
+    snap-to-edges true
+    snap-distance 10
+    snap-to-windows true
+}
+
+// Grid layout
+layout-grid {
+    auto-columns true
+    max-columns 4
+    column-ratio 1.0
+    respect-aspect-ratio false
+    center-last-row true
+}
+
+// Spiral layout
+layout-spiral {
+    ratio 0.618
+    clockwise true
+    start-direction "right"
+}
+
+// Columns layout
+layout-columns {
+    count 3
+    equal-width true
+    min-width 400
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Monitor Configuration
+// ─────────────────────────────────────────────────────────────────────
+// monitor "<name>" {
+//     resolution 1920 1080
+//     refresh-rate 144
+//     position 0 0
+//     scale 1.0
+//     transform 0      // 0=normal, 1=90, 2=180, 3=270, 4=flipped, etc.
+//     vrr true
+//     dpms true
+//     adaptive-sync true
+//     default-workspace "main"
+// }
+
+monitor "preferred" {
+    resolution 0 0      // 0 0 = preferred/auto
+    position "auto"
+    scale 1.0
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Window Rules
+// ─────────────────────────────────────────────────────────────────────
+window-rule {
+    match app-id="firefox" {
+        opacity 0.98
+        // open-on-workspace "web"
+    }
+
+    match app-id="kitty" {
+        opacity 0.92
+        shadow true
+        blur true
+    }
+
+    match title="Picture-in-Picture" {
+        float true
+        pin true
+        size 480 270
+        position "bottom-right"
+        no-focus true
+        opacity 1.0
+    }
+
+    match app-id="pavucontrol" {
+        float true
+        size 600 400
+        center true
+    }
+
+    match app-id="file-roller" {
+        float true
+        center true
+    }
+
+    match is-floating=true {
+        shadow true
+        blur true
+    }
+
+    match app-id="xdg-desktop-portal*" {
+        float true
+        center true
+        size 800 600
+    }
+
+    match title="^Open File$" {
+        float true
+        center true
+        size 900 600
+    }
+
+    match app-id="steam" title="" {
+        float true
+        no-focus true
+    }
+
+    // Block certain windows from screencasts
+    match app-id="1password" {
+        block-screencast true
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Workspace Rules
+// ─────────────────────────────────────────────────────────────────────
+workspace-rule {
+    workspace 1 {
+        name "main"
+        persistent true
+        default-layout "scrollable"
+    }
+    workspace 2 {
+        name "web"
+        persistent true
+    }
+    workspace 3 {
+        name "dev"
+        persistent true
+        default-layout "dwindle"
+    }
+    workspace "special" {
+        name "scratchpad"
+        gaps-in 20
+        gaps-out 40
+        border-size 3
+        rounding 15
+        decorate true
+        shadow true
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Key Bindings
+// ─────────────────────────────────────────────────────────────────────
+binds {
+    // Modifiers: super, alt, shift, ctrl
+    // Key names follow xkb naming
+
+    // ── Application Launchers ──
+    bind "super" "return" "exec" "kitty"
+    bind "super" "d" "exec" "fuzzel"
+    bind "super" "e" "exec" "nautilus"
+    bind "super" "b" "exec" "firefox"
+    bind "super+shift" "s" "exec" "grimblast copy area"
+    bind "super" "period" "exec" "bemoji"
+    bind "super" "v" "exec" "cliphist list | fuzzel -d | cliphist decode | wl-copy"
+
+    // ── Window Management ──
+    bind "super" "q" "killactive"
+    bind "super" "f" "fullscreen" "0"
+    bind "super+shift" "f" "fullscreen" "1"   // maximize
+    bind "super" "t" "togglefloating"
+    bind "super" "p" "pin"
+    bind "super" "s" "togglesplit"
+    bind "super" "g" "togglegroup"
+    bind "super" "tab" "changegroupactive" "f"
+    bind "super+shift" "tab" "changegroupactive" "b"
+    bind "super" "c" "centerwindow"
+
+    // ── Focus Movement ──
+    bind "super" "h" "focuswindow" "l"
+    bind "super" "l" "focuswindow" "r"
+    bind "super" "k" "focuswindow" "u"
+    bind "super" "j" "focuswindow" "d"
+    bind "super" "left" "focuswindow" "l"
+    bind "super" "right" "focuswindow" "r"
+    bind "super" "up" "focuswindow" "u"
+    bind "super" "down" "focuswindow" "d"
+
+    // ── Window Movement ──
+    bind "super+shift" "h" "movewindow" "l"
+    bind "super+shift" "l" "movewindow" "r"
+    bind "super+shift" "k" "movewindow" "u"
+    bind "super+shift" "j" "movewindow" "d"
+    bind "super+shift" "left" "movewindow" "l"
+    bind "super+shift" "right" "movewindow" "r"
+    bind "super+shift" "up" "movewindow" "u"
+    bind "super+shift" "down" "movewindow" "d"
+
+    // ── Window Resize ──
+    bind "super+ctrl" "h" "resizewindow" "-40 0"
+    bind "super+ctrl" "l" "resizewindow" "40 0"
+    bind "super+ctrl" "k" "resizewindow" "0 -40"
+    bind "super+ctrl" "j" "resizewindow" "0 40"
+    bind "super+ctrl" "left" "resizewindow" "-40 0"
+    bind "super+ctrl" "right" "resizewindow" "40 0"
+    bind "super+ctrl" "up" "resizewindow" "0 -40"
+    bind "super+ctrl" "down" "resizewindow" "0 40"
+
+    // ── Workspace Switching ──
+    bind "super" "1" "workspace" "1"
+    bind "super" "2" "workspace" "2"
+    bind "super" "3" "workspace" "3"
+    bind "super" "4" "workspace" "4"
+    bind "super" "5" "workspace" "5"
+    bind "super" "6" "workspace" "6"
+    bind "super" "7" "workspace" "7"
+    bind "super" "8" "workspace" "8"
+    bind "super" "9" "workspace" "9"
+    bind "super" "0" "workspace" "10"
+    bind "super" "bracketright" "workspace" "next"
+    bind "super" "bracketleft" "workspace" "prev"
+    bind "super" "mouse_down" "workspace" "next"
+    bind "super" "mouse_up" "workspace" "prev"
+
+    // ── Move Window to Workspace ──
+    bind "super+shift" "1" "movetoworkspace" "1"
+    bind "super+shift" "2" "movetoworkspace" "2"
+    bind "super+shift" "3" "movetoworkspace" "3"
+    bind "super+shift" "4" "movetoworkspace" "4"
+    bind "super+shift" "5" "movetoworkspace" "5"
+    bind "super+shift" "6" "movetoworkspace" "6"
+    bind "super+shift" "7" "movetoworkspace" "7"
+    bind "super+shift" "8" "movetoworkspace" "8"
+    bind "super+shift" "9" "movetoworkspace" "9"
+    bind "super+shift" "0" "movetoworkspace" "10"
+
+    // ── Silent Move (don't follow) ──
+    bind "super+alt" "1" "movetoworkspacesilent" "1"
+    bind "super+alt" "2" "movetoworkspacesilent" "2"
+    bind "super+alt" "3" "movetoworkspacesilent" "3"
+
+    // ── Special Workspace ──
+    bind "super" "grave" "togglespecialworkspace"
+    bind "super+shift" "grave" "movetoworkspace" "special"
+
+    // ── Monitor Focus ──
+    bind "super+alt" "h" "focusmonitor" "l"
+    bind "super+alt" "l" "focusmonitor" "r"
+    bind "super+alt" "k" "focusmonitor" "u"
+    bind "super+alt" "j" "focusmonitor" "d"
+
+    // ── Move Workspace to Monitor ──
+    bind "super+alt+shift" "h" "movecurrentworkspacetomonitor" "l"
+    bind "super+alt+shift" "l" "movecurrentworkspacetomonitor" "r"
+
+    // ── Scrollable Layout Specific ──
+    bind "super" "comma" "scrollleft"
+    bind "super" "period_off" "scrollright"
+    bind "super+shift" "comma" "scrollcolumn" "first"
+    bind "super+shift" "period_off" "scrollcolumn" "last"
+    bind "super" "minus" "setcolumnwidth" "-10%"
+    bind "super" "equal" "setcolumnwidth" "+10%"
+    bind "super+shift" "c" "centercolumn"
+
+    // ── Layout Switching ──
+    bind "super" "space" "cyclelayout"
+    bind "super+shift" "space" "cyclelayout" "prev"
+
+    // ── Overview / Zoom ──
+    bind "super" "o" "toggleoverview"
+    bind "super+ctrl" "equal" "zoomin"
+    bind "super+ctrl" "minus" "zoomout"
+
+    // ── Screenshots ──
+    bind "" "print" "screenshot" "output"
+    bind "shift" "print" "screenshot" "region"
+    bind "ctrl" "print" "screenshot" "window"
+    bind "super" "print" "screenrecord" "toggle"
+
+    // ── Master Layout Specific ──
+    bind "super+shift" "return" "swapwithmaster"
+    bind "super" "bracketright_m" "addmaster"
+    bind "super" "bracketleft_m" "removemaster"
+
+    // ── System ──
+    bind "super+shift" "e" "exit"
+    bind "super+shift" "r" "reload"
+    bind "super" "l_lock" "exec" "swaylock"
+    bind "super+shift" "q" "forceidle"
+
+    // ── Opacity ──
+    bind "super+alt" "up" "setopacity" "+0.05"
+    bind "super+alt" "down" "setopacity" "-0.05"
+
+    // ── Mouse binds ──
+    bindm "super" "mouse:272" "movewindow"     // LMB drag
+    bindm "super" "mouse:273" "resizewindow"   // RMB drag
+
+    // ── Submaps (modes) ──
+    bind "super" "r" "submap" "resize"
+
+    submap "resize" {
+        bind "" "h" "resizewindow" "-20 0"
+        bind "" "l" "resizewindow" "20 0"
+        bind "" "k" "resizewindow" "0 -20"
+        bind "" "j" "resizewindow" "0 20"
+        bind "" "escape" "submap" "reset"
+        bind "" "return" "submap" "reset"
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Environment Variables
+// ─────────────────────────────────────────────────────────────────────
+environment {
+    env "XCURSOR_SIZE" "24"
+    env "QT_QPA_PLATFORM" "wayland"
+    env "QT_QPA_PLATFORMTHEME" "qt5ct"
+    env "QT_WAYLAND_DISABLE_WINDOWDECORATION" "1"
+    env "GDK_BACKEND" "wayland,x11"
+    env "SDL_VIDEODRIVER" "wayland"
+    env "CLUTTER_BACKEND" "wayland"
+    env "XDG_CURRENT_DESKTOP" "eternal"
+    env "XDG_SESSION_TYPE" "wayland"
+    env "XDG_SESSION_DESKTOP" "eternal"
+    env "MOZ_ENABLE_WAYLAND" "1"
+    env "ELECTRON_OZONE_PLATFORM_HINT" "wayland"
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Autostart / Exec
+// ─────────────────────────────────────────────────────────────────────
+exec-once {
+    exec "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
+    exec "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
+    exec "waybar"
+    exec "swaync"
+    exec "swww-daemon"
+    exec "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+    exec "wl-paste --watch cliphist store"
+    exec "wl-clip-persist --clipboard regular"
+    exec "xwayland-satellite"
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// XWayland Settings
+// ─────────────────────────────────────────────────────────────────────
+xwayland {
+    enabled true
+    use-nearest-neighbor true
+    force-zero-scaling false
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Plugin Configuration
+// ─────────────────────────────────────────────────────────────────────
+plugins {
+    // plugin "/usr/lib/eternal/plugins/libhyprbars.so" {
+    //     bar-height 22
+    //     bar-color "rgba(30,30,46,0.9)"
+    //     bar-text-size 10
+    //     bar-text-font "JetBrainsMono Nerd Font"
+    //     buttons {
+    //         close-color "rgba(243,139,168,1.0)"
+    //         maximize-color "rgba(166,227,161,1.0)"
+    //         minimize-color "rgba(249,226,175,1.0)"
+    //     }
+    // }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Permissions
+// ─────────────────────────────────────────────────────────────────────
+permissions {
+    // Control what apps can do
+    screencopy {
+        allow "obs" "slurp" "grim" "grimblast" "flameshot"
+        deny-by-default false
+    }
+    input-capture {
+        allow "xdg-desktop-portal-wlr"
+    }
+    toplevel-export {
+        allow "*"
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Debug (for development)
+// ─────────────────────────────────────────────────────────────────────
+debug {
+    disable-logs false
+    log-level "info"      // trace, debug, info, warn, error, critical
+    damage-tracking true
+    overlay false
+    disable-scale-checks false
+}
