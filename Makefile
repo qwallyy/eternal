@@ -2,6 +2,12 @@ PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 DATADIR ?= $(PREFIX)/share
 MANDIR ?= $(DATADIR)/man
+SESSION_DIR ?= $(DATADIR)/wayland-sessions
+SESSION_ID ?= wm
+SESSION_NAME ?= WM
+SESSION_COMMENT ?= A modern Wayland compositor with scrollable tiling and animations
+SESSION_DESKTOP_NAMES ?= eternal
+SESSION_EXEC ?= $(BINDIR)/eternal
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
 JOBS ?= $(shell nproc 2>/dev/null || echo 4)
@@ -30,16 +36,24 @@ install: build
 	install -Dm755 $(BUILD_DIR)/eternal $(DESTDIR)$(BINDIR)/eternal
 	install -Dm755 $(BUILD_DIR)/eternalctl $(DESTDIR)$(BINDIR)/eternalctl
 	install -Dm644 config/eternal.kdl $(DESTDIR)$(DATADIR)/eternal/eternal.kdl
-	install -Dm644 packaging/eternal.desktop $(DESTDIR)$(DATADIR)/wayland-sessions/eternal.desktop
-	install -Dm644 packaging/wm.desktop $(DESTDIR)$(DATADIR)/wayland-sessions/wm.desktop
+	install -Dm644 packaging/eternal.desktop $(DESTDIR)$(SESSION_DIR)/eternal.desktop
+	install -d $(DESTDIR)$(SESSION_DIR)
+	printf '%s\n' \
+		'[Desktop Entry]' \
+		'Name=$(SESSION_NAME)' \
+		'Comment=$(SESSION_COMMENT)' \
+		'Exec=$(SESSION_EXEC)' \
+		'Type=Application' \
+		'DesktopNames=$(SESSION_DESKTOP_NAMES)' \
+		> $(DESTDIR)$(SESSION_DIR)/$(SESSION_ID).desktop
 	install -Dm644 docs/eternal.1 $(DESTDIR)$(MANDIR)/man1/eternal.1
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/eternal
 	rm -f $(DESTDIR)$(BINDIR)/eternalctl
 	rm -f $(DESTDIR)$(DATADIR)/eternal/eternal.kdl
-	rm -f $(DESTDIR)$(DATADIR)/wayland-sessions/eternal.desktop
-	rm -f $(DESTDIR)$(DATADIR)/wayland-sessions/wm.desktop
+	rm -f $(DESTDIR)$(SESSION_DIR)/eternal.desktop
+	rm -f $(DESTDIR)$(SESSION_DIR)/$(SESSION_ID).desktop
 	rm -f $(DESTDIR)$(MANDIR)/man1/eternal.1
 
 clean:
