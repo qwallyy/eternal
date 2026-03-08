@@ -15,6 +15,21 @@ extern "C" {
 
 namespace eternal {
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Construction / destruction
 // ---------------------------------------------------------------------------
@@ -23,16 +38,23 @@ Touch::Touch(InputManager* manager)
     : manager_(manager)
 {
     assert(manager_);
+
+    initListener(downListener_);
+    initListener(upListener_);
+    initListener(motionListener_);
+    initListener(cancelListener_);
+    initListener(frameListener_);
+    initListener(destroyListener_);
 }
 
 Touch::~Touch() {
     if (wlrTouch_) {
-        wl_list_remove(&downListener_.link);
-        wl_list_remove(&upListener_.link);
-        wl_list_remove(&motionListener_.link);
-        wl_list_remove(&cancelListener_.link);
-        wl_list_remove(&frameListener_.link);
-        wl_list_remove(&destroyListener_.link);
+        resetListener(downListener_);
+        resetListener(upListener_);
+        resetListener(motionListener_);
+        resetListener(cancelListener_);
+        resetListener(frameListener_);
+        resetListener(destroyListener_);
     }
 }
 
@@ -42,12 +64,12 @@ Touch::~Touch() {
 
 void Touch::attachDevice(wlr_touch* touch) {
     if (wlrTouch_) {
-        wl_list_remove(&downListener_.link);
-        wl_list_remove(&upListener_.link);
-        wl_list_remove(&motionListener_.link);
-        wl_list_remove(&cancelListener_.link);
-        wl_list_remove(&frameListener_.link);
-        wl_list_remove(&destroyListener_.link);
+        resetListener(downListener_);
+        resetListener(upListener_);
+        resetListener(motionListener_);
+        resetListener(cancelListener_);
+        resetListener(frameListener_);
+        resetListener(destroyListener_);
     }
 
     wlrTouch_ = touch;
@@ -171,12 +193,12 @@ void Touch::handleFrameEvent(wl_listener* listener, void* /*data*/) {
 void Touch::handleDestroy(wl_listener* listener, void* /*data*/) {
     Touch* self = wl_container_of(listener, self, destroyListener_);
 
-    wl_list_remove(&self->downListener_.link);
-    wl_list_remove(&self->upListener_.link);
-    wl_list_remove(&self->motionListener_.link);
-    wl_list_remove(&self->cancelListener_.link);
-    wl_list_remove(&self->frameListener_.link);
-    wl_list_remove(&self->destroyListener_.link);
+    resetListener(self->downListener_);
+    resetListener(self->upListener_);
+    resetListener(self->motionListener_);
+    resetListener(self->cancelListener_);
+    resetListener(self->frameListener_);
+    resetListener(self->destroyListener_);
     self->wlrTouch_ = nullptr;
 }
 
@@ -234,14 +256,14 @@ void Touch::handleUp(int32_t id, uint32_t timeMsec) {
 // ---------------------------------------------------------------------------
 
 void Touch::handleMotion(int32_t id, double x, double y, uint32_t timeMsec) {
+    double sx = x;
+    double sy = y;
+    wlr_surface* surface = surfaceAtTouch(x, y, sx, sy);
+
     auto it = touchPoints_.find(id);
     if (it != touchPoints_.end()) {
         it->second.x = x;
         it->second.y = y;
-
-        // Update focused surface on motion
-        double sx = 0, sy = 0;
-        wlr_surface* surface = surfaceAtTouch(x, y, sx, sy);
         it->second.focusedSurface = surface;
     }
 
@@ -254,8 +276,10 @@ void Touch::handleMotion(int32_t id, double x, double y, uint32_t timeMsec) {
         emulatePointerMotion(x, y, timeMsec);
     }
 
-    // Forward to seat
-    wlr_seat_touch_notify_motion(manager_->getSeat(), timeMsec, id, x, y);
+    // Forward surface-local coordinates to the seat when we know the target.
+    if (surface) {
+        wlr_seat_touch_notify_motion(manager_->getSeat(), timeMsec, id, sx, sy);
+    }
 }
 
 // ---------------------------------------------------------------------------

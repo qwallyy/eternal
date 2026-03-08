@@ -15,6 +15,21 @@ extern "C" {
 
 namespace eternal {
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Construction / destruction
 // ---------------------------------------------------------------------------
@@ -23,15 +38,21 @@ Tablet::Tablet(InputManager* manager)
     : manager_(manager)
 {
     assert(manager_);
+
+    initListener(axisListener_);
+    initListener(proximityListener_);
+    initListener(tipListener_);
+    initListener(buttonListener_);
+    initListener(destroyListener_);
 }
 
 Tablet::~Tablet() {
     if (wlrTablet_) {
-        wl_list_remove(&axisListener_.link);
-        wl_list_remove(&proximityListener_.link);
-        wl_list_remove(&tipListener_.link);
-        wl_list_remove(&buttonListener_.link);
-        wl_list_remove(&destroyListener_.link);
+        resetListener(axisListener_);
+        resetListener(proximityListener_);
+        resetListener(tipListener_);
+        resetListener(buttonListener_);
+        resetListener(destroyListener_);
     }
 }
 
@@ -57,11 +78,11 @@ void Tablet::initTabletV2(wl_display* display) {
 
 void Tablet::attachDevice(wlr_tablet* tablet) {
     if (wlrTablet_) {
-        wl_list_remove(&axisListener_.link);
-        wl_list_remove(&proximityListener_.link);
-        wl_list_remove(&tipListener_.link);
-        wl_list_remove(&buttonListener_.link);
-        wl_list_remove(&destroyListener_.link);
+        resetListener(axisListener_);
+        resetListener(proximityListener_);
+        resetListener(tipListener_);
+        resetListener(buttonListener_);
+        resetListener(destroyListener_);
     }
 
     wlrTablet_ = tablet;
@@ -320,11 +341,11 @@ void Tablet::handleDestroy(wl_listener* listener, void* /*data*/) {
     }
     self->toolStates_.clear();
 
-    wl_list_remove(&self->axisListener_.link);
-    wl_list_remove(&self->proximityListener_.link);
-    wl_list_remove(&self->tipListener_.link);
-    wl_list_remove(&self->buttonListener_.link);
-    wl_list_remove(&self->destroyListener_.link);
+    resetListener(self->axisListener_);
+    resetListener(self->proximityListener_);
+    resetListener(self->tipListener_);
+    resetListener(self->buttonListener_);
+    resetListener(self->destroyListener_);
     self->wlrTablet_ = nullptr;
     self->tabletV2_ = nullptr;
 }

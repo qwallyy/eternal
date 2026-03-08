@@ -16,6 +16,17 @@ namespace eternal {
 
 namespace {
 
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
 unsigned vtFromKeysym(xkb_keysym_t keysym) {
     if (keysym >= XKB_KEY_XF86Switch_VT_1 && keysym <= XKB_KEY_XF86Switch_VT_12) {
         return static_cast<unsigned>(keysym - XKB_KEY_XF86Switch_VT_1 + 1);
@@ -69,6 +80,9 @@ Keyboard::Keyboard(InputManager* manager)
     : manager_(manager)
 {
     assert(manager_);
+    initListener(keyListener_);
+    initListener(modifiersListener_);
+    initListener(destroyListener_);
     initXkb();
 }
 
@@ -76,9 +90,9 @@ Keyboard::~Keyboard() {
     stopRepeat();
 
     if (wlrKeyboard_) {
-        wl_list_remove(&keyListener_.link);
-        wl_list_remove(&modifiersListener_.link);
-        wl_list_remove(&destroyListener_.link);
+        resetListener(keyListener_);
+        resetListener(modifiersListener_);
+        resetListener(destroyListener_);
     }
     destroyXkb();
 }
@@ -160,9 +174,9 @@ void Keyboard::applyLayoutConfig() {
 void Keyboard::attachDevice(wlr_keyboard* keyboard) {
     // If we already have a keyboard attached, remove old listeners
     if (wlrKeyboard_) {
-        wl_list_remove(&keyListener_.link);
-        wl_list_remove(&modifiersListener_.link);
-        wl_list_remove(&destroyListener_.link);
+        resetListener(keyListener_);
+        resetListener(modifiersListener_);
+        resetListener(destroyListener_);
     }
 
     wlrKeyboard_ = keyboard;
@@ -290,9 +304,9 @@ void Keyboard::handleDestroy(wl_listener* listener, void* data) {
 
     self->stopRepeat();
 
-    wl_list_remove(&self->keyListener_.link);
-    wl_list_remove(&self->modifiersListener_.link);
-    wl_list_remove(&self->destroyListener_.link);
+    resetListener(self->keyListener_);
+    resetListener(self->modifiersListener_);
+    resetListener(self->destroyListener_);
     self->wlrKeyboard_ = nullptr;
     self->pressedKeys_.clear();
 }

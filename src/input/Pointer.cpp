@@ -19,6 +19,21 @@ extern "C" {
 
 namespace eternal {
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Construction / destruction
 // ---------------------------------------------------------------------------
@@ -29,11 +44,18 @@ Pointer::Pointer(InputManager* manager)
     , scrollMethod_(ScrollMethod::TwoFinger)
 {
     assert(manager_);
+
+    initListener(motionListener_);
+    initListener(motionAbsoluteListener_);
+    initListener(buttonListener_);
+    initListener(axisListener_);
+    initListener(frameListener_);
+    initListener(destroyListener_);
 }
 
 Pointer::~Pointer() {
     if (wlrPointer_) {
-        wl_list_remove(&destroyListener_.link);
+        resetListener(destroyListener_);
     }
 }
 
@@ -44,7 +66,7 @@ Pointer::~Pointer() {
 void Pointer::attachDevice(wlr_pointer* pointer) {
     // Remove old destroy listener if we're replacing a device
     if (wlrPointer_) {
-        wl_list_remove(&destroyListener_.link);
+        resetListener(destroyListener_);
     }
 
     wlrPointer_ = pointer;
@@ -92,7 +114,7 @@ void Pointer::handleFrameEvent(wl_listener* listener, void* /*data*/) {
 
 void Pointer::handleDestroy(wl_listener* listener, void* /*data*/) {
     Pointer* self = wl_container_of(listener, self, destroyListener_);
-    wl_list_remove(&self->destroyListener_.link);
+    resetListener(self->destroyListener_);
     self->wlrPointer_ = nullptr;
 }
 
@@ -136,11 +158,13 @@ void Pointer::handleMotion(double dx, double dy, uint32_t timeMsec) {
 }
 
 void Pointer::handleMotionAbsolute(double x, double y, uint32_t timeMsec) {
+    const double oldX = cursorX_;
+    const double oldY = cursorY_;
     cursorX_ = x;
     cursorY_ = y;
 
     if (motionCallback_) {
-        motionCallback_(x - cursorX_, y - cursorY_);
+        motionCallback_(x - oldX, y - oldY);
     }
 
     processMotion(timeMsec);
