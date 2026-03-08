@@ -4,14 +4,41 @@ export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=eternal
 export XDG_SESSION_DESKTOP=eternal
 
-LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}"
-LOG_FILE="$LOG_DIR/eternal-session.log"
-mkdir -p "$LOG_DIR"
-{
-    echo "==== $(date) ===="
-    echo "Starting eternal-session"
-} >>"$LOG_FILE"
-exec >>"$LOG_FILE" 2>&1
+# Choose a writable log file, even when HOME/XDG_STATE_HOME is missing.
+LOG_FILE="${ETERNAL_LOG_FILE:-}"
+if [ -n "$LOG_FILE" ]; then
+    log_dir="$(dirname "$LOG_FILE")"
+    mkdir -p "$log_dir" 2>/dev/null || LOG_FILE=""
+fi
+
+if [ -z "$LOG_FILE" ]; then
+    uid="$(id -u 2>/dev/null || echo unknown)"
+    for base in "${XDG_STATE_HOME:-}" "${HOME:-}/.local/state" "${HOME:-}/.cache" "/tmp"; do
+        [ -n "$base" ] || continue
+        case "$base" in
+            /tmp) candidate="$base/eternal-session-$uid.log" ;;
+            *) candidate="$base/eternal/eternal-session.log" ;;
+        esac
+        candidate_dir="$(dirname "$candidate")"
+        mkdir -p "$candidate_dir" 2>/dev/null || continue
+        : >>"$candidate" 2>/dev/null || continue
+        LOG_FILE="$candidate"
+        break
+    done
+fi
+
+[ -n "$LOG_FILE" ] || LOG_FILE="/tmp/eternal-session.log"
+export ETERNAL_LOG_FILE="$LOG_FILE"
+
+if ! exec >>"$LOG_FILE" 2>&1; then
+    LOG_FILE="/tmp/eternal-session-fallback.log"
+    export ETERNAL_LOG_FILE="$LOG_FILE"
+    exec >>"$LOG_FILE" 2>&1
+fi
+
+echo "==== $(date) ===="
+echo "Starting eternal-session"
+echo "Log file: $LOG_FILE"
 
 # LightDM can race device/session initialization for Wayland sessions.
 # Allow a short delay (default 1s) when started from lightdm.
