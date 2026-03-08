@@ -3,14 +3,56 @@
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=eternal
 export XDG_SESSION_DESKTOP=eternal
-export LIBSEAT_BACKEND=logind
+
+LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}"
+LOG_FILE="$LOG_DIR/eternal-session.log"
+mkdir -p "$LOG_DIR"
+{
+    echo "==== $(date) ===="
+    echo "Starting eternal-session"
+} >>"$LOG_FILE"
+exec >>"$LOG_FILE" 2>&1
+
+# Prefer seatd when available, otherwise fall back to logind.
+if [ -z "${LIBSEAT_BACKEND:-}" ]; then
+    if [ -S /run/seatd.sock ]; then
+        export LIBSEAT_BACKEND=seatd
+    else
+        export LIBSEAT_BACKEND=logind
+    fi
+fi
+
+# Detect common virtual GPU vendors used by virt-manager video models.
+is_virtual_gpu=0
+for vpath in /sys/class/drm/card*/device/vendor; do
+    [ -r "$vpath" ] || continue
+    vendor="$(cat "$vpath" 2>/dev/null || true)"
+    case "$vendor" in
+        0x1af4|0x1b36|0x1234|0x80ee|0x15ad)
+            is_virtual_gpu=1
+            break
+            ;;
+    esac
+done
 
 # VM-friendly wlroots defaults. Users can override them in their environment.
-export WLR_NO_HARDWARE_CURSORS="${WLR_NO_HARDWARE_CURSORS:-1}"
-export WLR_RENDERER_ALLOW_SOFTWARE="${WLR_RENDERER_ALLOW_SOFTWARE:-1}"
-export WLR_RENDERER="${WLR_RENDERER:-pixman}"
-export WLR_DRM_NO_ATOMIC="${WLR_DRM_NO_ATOMIC:-1}"
-export WLR_LIBINPUT_NO_DEVICES="${WLR_LIBINPUT_NO_DEVICES:-1}"
+# Applies to:
+# - virtio-gpu (0x1af4)
+# - qxl (0x1b36)
+# - bochs/stdvga (0x1234)
+# - virtualbox (0x80ee)
+# - vmware (0x15ad)
+if [ "$is_virtual_gpu" -eq 1 ]; then
+    export WLR_NO_HARDWARE_CURSORS="${WLR_NO_HARDWARE_CURSORS:-1}"
+    export WLR_RENDERER_ALLOW_SOFTWARE="${WLR_RENDERER_ALLOW_SOFTWARE:-1}"
+    export WLR_RENDERER="${WLR_RENDERER:-pixman}"
+    export WLR_DRM_NO_ATOMIC="${WLR_DRM_NO_ATOMIC:-1}"
+fi
+
+# Opt-in: allow starting without libinput devices.
+if [ "${ETERNAL_ALLOW_NO_INPUT:-0}" = "1" ]; then
+    export WLR_LIBINPUT_NO_DEVICES=1
+fi
 
 if command -v dbus-run-session >/dev/null 2>&1; then
     exec dbus-run-session /usr/bin/eternal

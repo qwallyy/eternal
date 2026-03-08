@@ -16,6 +16,7 @@ extern "C" {
 }
 
 #include <cstring>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 
@@ -68,6 +69,27 @@ int main(int argc, char* argv[]) {
     Logger::instance().setLevel(debug ? LogLevel::Debug : LogLevel::Info);
 
     LOG_INFO("Starting Eternal compositor v0.1.0");
+
+    // Avoid hard-lock behavior when users accidentally launch the compositor
+    // from inside an existing X11/Wayland desktop session.
+    const bool allow_nested = []() {
+        const char* env = std::getenv("ETERNAL_ALLOW_NESTED");
+        return env && std::strcmp(env, "1") == 0;
+    }();
+    const bool has_x11 = []() {
+        const char* env = std::getenv("DISPLAY");
+        return env && env[0] != '\0';
+    }();
+    const bool has_wayland = []() {
+        const char* env = std::getenv("WAYLAND_DISPLAY");
+        return env && env[0] != '\0';
+    }();
+    if (!allow_nested && (has_x11 || has_wayland)) {
+        LOG_CRIT("Refusing to start inside an existing graphical session. "
+                 "Use a TTY or login manager session. "
+                 "Set ETERNAL_ALLOW_NESTED=1 to override.");
+        return 1;
+    }
 
     // -----------------------------------------------------------------------
     // Initialise wlroots
