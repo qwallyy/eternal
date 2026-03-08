@@ -112,24 +112,23 @@ if [ "$is_virtual_gpu" -eq 1 ]; then
     export WLR_DRM_NO_ATOMIC="${WLR_DRM_NO_ATOMIC:-1}"
 fi
 
-# Preflight: ensure at least one input device is available.
-has_input=0
+# Preflight: only fail when there are no input device nodes at all.
+# With logind/seatd, direct readability of /dev/input/event* is not required.
+has_input_nodes=0
 for input_node in /dev/input/event*; do
     [ -e "$input_node" ] || continue
-    if [ -r "$input_node" ]; then
-        has_input=1
-        break
-    fi
+    has_input_nodes=1
+    break
 done
 
-if [ "$has_input" -ne 1 ]; then
-    echo "No readable input devices found under /dev/input/event*"
+if [ "$has_input_nodes" -ne 1 ]; then
+    echo "No input devices found under /dev/input/event*"
     echo "LIBSEAT_BACKEND=$LIBSEAT_BACKEND"
     if [ "${ETERNAL_ALLOW_NO_INPUT:-0}" = "1" ]; then
         echo "Proceeding because ETERNAL_ALLOW_NO_INPUT=1"
         export WLR_LIBINPUT_NO_DEVICES=1
     else
-        echo "Refusing to start without input devices to avoid an unusable session."
+        echo "Refusing to start without any input device nodes."
         echo "Set ETERNAL_ALLOW_NO_INPUT=1 to override."
         exit 1
     fi
