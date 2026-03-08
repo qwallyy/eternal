@@ -383,8 +383,8 @@ void Effects::renderCursorOverlay(wlr_texture* cursor_tex,
     Box cursor_box = {
         cx - hotspot_x,
         cy - hotspot_y,
-        cursor_tex->width,
-        cursor_tex->height,
+        static_cast<int>(cursor_tex->width),
+        static_cast<int>(cursor_tex->height),
     };
 
     // Use the opacity shader for clean alpha compositing.

@@ -340,7 +340,6 @@ void layoutSurfaceList(std::vector<Surface*>& surfaces, Box area, int inner,
 // ---------------------------------------------------------------------------
 
 void MasterLayout::layoutCenterMaster(Box usable, int inner) {
-    int nm = static_cast<int>(masters_.size());
     int ns = static_cast<int>(stack_.size());
 
     if (ns == 0) {
@@ -362,7 +361,6 @@ void MasterLayout::layoutCenterMaster(Box usable, int inner) {
 
     // Split stack between left and right.
     int leftCount = (ns + 1) / 2;
-    int rightCount = ns - leftCount;
 
     std::vector<Surface*> leftStack(stack_.begin(), stack_.begin() + leftCount);
     std::vector<Surface*> rightStack(stack_.begin() + leftCount, stack_.end());

@@ -77,7 +77,6 @@ void WindowNode::addTabSurface(Surface* s) {
 void WindowNode::removeTabSurface(Surface* s) {
     auto it = std::find(tab_surfaces_.begin(), tab_surfaces_.end(), s);
     if (it != tab_surfaces_.end()) {
-        int idx = static_cast<int>(it - tab_surfaces_.begin());
         tab_surfaces_.erase(it);
         if (active_tab_ >= static_cast<int>(tab_surfaces_.size()) && !tab_surfaces_.empty()) {
             active_tab_ = static_cast<int>(tab_surfaces_.size()) - 1;

@@ -63,12 +63,12 @@ void Logger::log(LogLevel level, std::string_view message) {
 
     if (colors_ && output_ == &std::cerr) {
         *output_ << levelToColor(level)
-                 << "[" << time_buf << "." << ([&]{ char buf[4]; std::snprintf(buf, sizeof(buf), "%03d", static_cast<int>(ms.count())); return std::string(buf); }()) << "] "
+                 << "[" << time_buf << "." << ([&]{ char buf[8]; std::snprintf(buf, sizeof(buf), "%03d", static_cast<int>(ms.count()) % 1000); return std::string(buf); }()) << "] "
                  << "[" << levelToString(level) << "] "
                  << message
                  << "\033[0m\n";
     } else {
-        *output_ << "[" << time_buf << "." << ([&]{ char buf[4]; std::snprintf(buf, sizeof(buf), "%03d", static_cast<int>(ms.count())); return std::string(buf); }()) << "] "
+        *output_ << "[" << time_buf << "." << ([&]{ char buf[8]; std::snprintf(buf, sizeof(buf), "%03d", static_cast<int>(ms.count()) % 1000); return std::string(buf); }()) << "] "
                  << "[" << levelToString(level) << "] "
                  << message << "\n";
     }

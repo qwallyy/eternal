@@ -377,7 +377,6 @@ AnimationID AnimationEngine::animateWindowClose(Surface* surface,
     ghost.finished = false;
 
     m_ghosts.push_back(ghost);
-    size_t ghostIdx = m_ghosts.size() - 1;
     AnimationID ghostAnimId = groupId;
 
     // Opacity: fade out
@@ -503,7 +502,7 @@ void AnimationEngine::animateGeometry(Surface* surface,
     float moveDur = m_moveResizeConfig.moveDuration_ms;
     float resizeDur = m_moveResizeConfig.resizeDuration_ms;
 
-    auto updateGeo = [surface, &ga, this]() {
+    [[maybe_unused]] auto updateGeo = [surface, &ga, this]() {
         if (!surface) return;
         int ax = isAnimating(ga.xAnim) ? static_cast<int>(getValue(ga.xAnim)) : ga.targetX;
         int ay = isAnimating(ga.yAnim) ? static_cast<int>(getValue(ga.yAnim)) : ga.targetY;

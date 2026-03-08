@@ -523,7 +523,6 @@ void Renderer::renderSurface(wlr_surface* surface, const Box& pos) {
 
     // Track per-surface damage (Task 14).
     auto& tracker = surfaceDamage(surface);
-    wlr_buffer* client_buf = surface->buffer ? surface->buffer->source : nullptr;
 
     uint32_t seq = surface->current.seq;
     if (seq != tracker.last_commit_seq) {
@@ -736,8 +735,8 @@ void Renderer::renderSoftwareCursor(wlr_output* output) {
     Box cursor_box = {
         cs.x - cs.hotspot_x,
         cs.y - cs.hotspot_y,
-        cs.texture->width,
-        cs.texture->height,
+        static_cast<int>(cs.texture->width),
+        static_cast<int>(cs.texture->height),
     };
 
     renderTexture(cs.texture, cursor_box, 1.0f);

@@ -338,8 +338,7 @@ KDLToken KDLTokenizer::readRawString() {
             if (current() == '"' && pos_ + 2 < source_.size() &&
                 source_[pos_ + 1] == '"' && source_[pos_ + 2] == '"') {
                 std::size_t savedPos = pos_;
-                std::size_t savedLine = line_;
-                std::size_t savedCol = column_;
+                (void)0;
                 advance(); advance(); advance(); // consume """
                 bool matched = true;
                 for (int i = 0; i < hashCount; ++i) {
@@ -369,8 +368,7 @@ KDLToken KDLTokenizer::readRawString() {
     while (!atEnd()) {
         if (current() == '"') {
             std::size_t savedPos = pos_;
-            std::size_t savedLine = line_;
-            std::size_t savedCol = column_;
+            (void)0;
             advance(); // consume "
             bool matched = true;
             for (int i = 0; i < hashCount; ++i) {
@@ -597,7 +595,7 @@ KDLDocument KDLParser::parseFile(const std::filesystem::path& path) {
 
 std::optional<std::string> KDLParser::tryParseTypeAnnotation(KDLTokenizer& tokenizer) {
     if (tokenizer.peek().type == KDLTokenType::OpenParen) {
-        tokenizer.next(); // consume (
+        (void)tokenizer.next(); // consume (
         auto tok = tokenizer.next();
         if (tok.type != KDLTokenType::Identifier &&
             tok.type != KDLTokenType::String &&
@@ -687,7 +685,7 @@ std::optional<KDLNode> KDLParser::parseNode(KDLTokenizer& tokenizer) {
     // Skip newlines and semicolons between nodes.
     while (tokenizer.peek().type == KDLTokenType::Newline ||
            tokenizer.peek().type == KDLTokenType::Semicolon) {
-        tokenizer.next();
+        (void)tokenizer.next();
     }
 
     if (tokenizer.peek().type == KDLTokenType::Eof ||
@@ -698,7 +696,7 @@ std::optional<KDLNode> KDLParser::parseNode(KDLTokenizer& tokenizer) {
     // Check for slashdash (comment-out the next node).
     bool slashdashed = false;
     if (tokenizer.peek().type == KDLTokenType::SlashDash) {
-        tokenizer.next();
+        (void)tokenizer.next();
         slashdashed = true;
     }
 
@@ -733,10 +731,10 @@ std::optional<KDLNode> KDLParser::parseNode(KDLTokenizer& tokenizer) {
 
         // Children block
         if (peek.type == KDLTokenType::OpenBrace) {
-            tokenizer.next(); // consume {
+            (void)tokenizer.next(); // consume {
             while (true) {
                 if (tokenizer.peek().type == KDLTokenType::CloseBrace) {
-                    tokenizer.next(); // consume }
+                    (void)tokenizer.next(); // consume }
                     break;
                 }
                 if (tokenizer.peek().type == KDLTokenType::Eof) {
@@ -753,20 +751,20 @@ std::optional<KDLNode> KDLParser::parseNode(KDLTokenizer& tokenizer) {
         // Slashdash on argument/property/children
         bool argSlashdashed = false;
         if (peek.type == KDLTokenType::SlashDash) {
-            tokenizer.next();
+            (void)tokenizer.next();
             argSlashdashed = true;
 
             // If the next token is '{', the slashdash applies to the children block
             if (tokenizer.peek().type == KDLTokenType::OpenBrace) {
-                tokenizer.next(); // consume {
+                (void)tokenizer.next(); // consume {
                 int depth = 1;
                 while (depth > 0 && tokenizer.peek().type != KDLTokenType::Eof) {
                     if (tokenizer.peek().type == KDLTokenType::OpenBrace) depth++;
                     else if (tokenizer.peek().type == KDLTokenType::CloseBrace) depth--;
-                    if (depth > 0) tokenizer.next();
+                    if (depth > 0) (void)tokenizer.next();
                 }
                 if (tokenizer.peek().type == KDLTokenType::CloseBrace)
-                    tokenizer.next(); // consume final }
+                    (void)tokenizer.next(); // consume final }
                 break;
             }
         }
@@ -783,7 +781,7 @@ std::optional<KDLNode> KDLParser::parseNode(KDLTokenizer& tokenizer) {
              tok.type == KDLTokenType::String ||
              tok.type == KDLTokenType::RawString) &&
             tokenizer.peek().type == KDLTokenType::Equals) {
-            tokenizer.next(); // consume =
+            (void)tokenizer.next(); // consume =
             auto propValType = tryParseTypeAnnotation(tokenizer);
             (void)propValType;
             auto valTok = tokenizer.next();
