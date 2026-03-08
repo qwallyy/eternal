@@ -6,6 +6,14 @@ SESSION_DIR ?= $(DATADIR)/wayland-sessions
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
 JOBS ?= $(shell nproc 2>/dev/null || echo 4)
+INSTALLED_BINARIES := \
+	$(DESTDIR)$(BINDIR)/eternal \
+	$(DESTDIR)$(BINDIR)/eternalctl \
+	$(DESTDIR)$(BINDIR)/eternal-session
+INSTALLED_DATA := \
+	$(DESTDIR)$(DATADIR)/eternal/eternal.kdl \
+	$(DESTDIR)$(SESSION_DIR)/eternal.desktop \
+	$(DESTDIR)$(MANDIR)/man1/eternal.1
 
 all: build
 
@@ -29,6 +37,7 @@ test:
 
 install:
 	rm -rf $(BUILD_DIR)
+	rm -f $(INSTALLED_BINARIES) $(INSTALLED_DATA)
 	cmake -B $(BUILD_DIR) \
 		-DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
 		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
@@ -42,12 +51,7 @@ install:
 	install -Dm644 docs/eternal.1 $(DESTDIR)$(MANDIR)/man1/eternal.1
 
 uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/eternal
-	rm -f $(DESTDIR)$(BINDIR)/eternalctl
-	rm -f $(DESTDIR)$(BINDIR)/eternal-session
-	rm -f $(DESTDIR)$(DATADIR)/eternal/eternal.kdl
-	rm -f $(DESTDIR)$(SESSION_DIR)/eternal.desktop
-	rm -f $(DESTDIR)$(MANDIR)/man1/eternal.1
+	rm -f $(INSTALLED_BINARIES) $(INSTALLED_DATA)
 
 clean:
 	rm -rf $(BUILD_DIR)
