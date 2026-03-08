@@ -22,6 +22,21 @@ extern "C" {
 
 namespace eternal {
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Task 21: libinput log handler
 // ---------------------------------------------------------------------------
@@ -76,18 +91,25 @@ InputManager::InputManager(wlr_seat* seat, wlr_backend* backend,
     assert(outputLayout_);
     assert(display_);
 
+    initListener(newInputListener_);
+    initListener(cursorMotionListener_);
+    initListener(cursorMotionAbsoluteListener_);
+    initListener(cursorButtonListener_);
+    initListener(cursorAxisListener_);
+    initListener(cursorFrameListener_);
+
     initCursor();
 }
 
 InputManager::~InputManager() {
-    wl_list_remove(&newInputListener_.link);
+    resetListener(newInputListener_);
 
     if (cursor_) {
-        wl_list_remove(&cursorMotionListener_.link);
-        wl_list_remove(&cursorMotionAbsoluteListener_.link);
-        wl_list_remove(&cursorButtonListener_.link);
-        wl_list_remove(&cursorAxisListener_.link);
-        wl_list_remove(&cursorFrameListener_.link);
+        resetListener(cursorMotionListener_);
+        resetListener(cursorMotionAbsoluteListener_);
+        resetListener(cursorButtonListener_);
+        resetListener(cursorAxisListener_);
+        resetListener(cursorFrameListener_);
         wlr_cursor_destroy(cursor_);
     }
     if (xcursorManager_) {

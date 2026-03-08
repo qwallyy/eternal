@@ -706,6 +706,9 @@ void Surface::setGeometry(const SurfaceBox& box) {
 }
 
 void Surface::setGeometry(int x, int y, int width, int height) {
+    const int old_width = m_geometry.width;
+    const int old_height = m_geometry.height;
+
     // Damage old area.
     damageOutput();
 
@@ -715,7 +718,7 @@ void Surface::setGeometry(int x, int y, int width, int height) {
     m_geometry.height = height;
 
     // If the size changed, configure the client.
-    if (m_toplevel && (width != m_geometry.width || height != m_geometry.height)) {
+    if (m_toplevel && (width != old_width || height != old_height)) {
         m_pendingState.width  = width;
         m_pendingState.height = height;
         wlr_xdg_toplevel_set_size(m_toplevel, width, height);
