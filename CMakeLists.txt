@@ -359,8 +359,10 @@ install(FILES config/eternal.kdl
     OPTIONAL
 )
 
-# Install desktop session entry (Task 110)
-install(FILES packaging/eternal.desktop
+# Install desktop session entries (Task 110)
+install(FILES
+    packaging/eternal.desktop
+    packaging/wm.desktop
     DESTINATION ${CMAKE_INSTALL_DATADIR}/wayland-sessions
     OPTIONAL
 )

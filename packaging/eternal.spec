@@ -61,6 +61,7 @@ install -Dm644 config/eternal.kdl %{buildroot}%{_sysconfdir}/eternal/eternal.kdl
 
 # Install desktop entry for display managers
 install -Dm644 packaging/eternal.desktop %{buildroot}%{_datadir}/wayland-sessions/eternal.desktop
+install -Dm644 packaging/wm.desktop %{buildroot}%{_datadir}/wayland-sessions/wm.desktop
 
 # Install man page
 install -Dm644 docs/eternal.1 %{buildroot}%{_mandir}/man1/eternal.1
@@ -76,6 +77,7 @@ ctest --output-on-failure
 %{_bindir}/eternalctl
 %config(noreplace) %{_sysconfdir}/eternal/eternal.kdl
 %{_datadir}/wayland-sessions/eternal.desktop
+%{_datadir}/wayland-sessions/wm.desktop
 %{_datadir}/eternal/
 %{_mandir}/man1/eternal.1*
 

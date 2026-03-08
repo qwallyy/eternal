@@ -31,6 +31,7 @@ install: build
 	install -Dm755 $(BUILD_DIR)/eternalctl $(DESTDIR)$(BINDIR)/eternalctl
 	install -Dm644 config/eternal.kdl $(DESTDIR)$(DATADIR)/eternal/eternal.kdl
 	install -Dm644 packaging/eternal.desktop $(DESTDIR)$(DATADIR)/wayland-sessions/eternal.desktop
+	install -Dm644 packaging/wm.desktop $(DESTDIR)$(DATADIR)/wayland-sessions/wm.desktop
 	install -Dm644 docs/eternal.1 $(DESTDIR)$(MANDIR)/man1/eternal.1
 
 uninstall:
@@ -38,6 +39,7 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/eternalctl
 	rm -f $(DESTDIR)$(DATADIR)/eternal/eternal.kdl
 	rm -f $(DESTDIR)$(DATADIR)/wayland-sessions/eternal.desktop
+	rm -f $(DESTDIR)$(DATADIR)/wayland-sessions/wm.desktop
 	rm -f $(DESTDIR)$(MANDIR)/man1/eternal.1
 
 clean:
