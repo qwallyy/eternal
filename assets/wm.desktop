@@ -1,6 +1,0 @@
-[Desktop Entry]
-Name=WM
-Comment=A hybrid scrollable-tiling Wayland compositor
-Exec=eternal
-Type=Application
-DesktopNames=eternal

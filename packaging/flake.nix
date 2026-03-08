@@ -52,7 +52,6 @@
             # Install desktop session entry
             mkdir -p $out/share/wayland-sessions
             cp ${src}/packaging/eternal.desktop $out/share/wayland-sessions/
-            cp ${src}/packaging/wm.desktop $out/share/wayland-sessions/
 
             # Install man page
             mkdir -p $out/share/man/man1

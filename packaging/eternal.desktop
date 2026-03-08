@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Eternal
 Comment=A modern Wayland compositor with scrollable tiling and animations
-Exec=eternal
+Exec=/usr/bin/eternal
 Type=Application
 DesktopNames=eternal

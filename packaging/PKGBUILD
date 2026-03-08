@@ -68,8 +68,6 @@ package() {
     # Install desktop entry
     install -Dm644 "${pkgname}-${pkgver}/packaging/eternal.desktop" \
         "${pkgdir}/usr/share/wayland-sessions/eternal.desktop"
-    install -Dm644 "${pkgname}-${pkgver}/packaging/wm.desktop" \
-        "${pkgdir}/usr/share/wayland-sessions/wm.desktop"
 
     # Install man page
     install -Dm644 "${pkgname}-${pkgver}/docs/eternal.1" \
