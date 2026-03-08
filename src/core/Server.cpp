@@ -14,6 +14,7 @@
 
 extern "C" {
 #include <wlr/backend.h>
+#include <wlr/backend/session.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_compositor.h>
@@ -103,7 +104,7 @@ bool Server::initWayland() {
 }
 
 bool Server::initBackend() {
-    m_backend = wlr_backend_autocreate(wl_display_get_event_loop(m_display), nullptr);
+    m_backend = wlr_backend_autocreate(wl_display_get_event_loop(m_display), &m_session);
     if (!m_backend) {
         LOG_ERROR("Failed to create wlr_backend");
         return false;
@@ -184,7 +185,7 @@ bool Server::initSubsystems() {
     m_compositor = std::make_unique<Compositor>(*this);
     m_outputManager = std::make_unique<OutputManager>(*this);
     m_inputManager = std::make_unique<InputManager>(
-        m_seat, m_backend, m_outputLayout, m_display);
+        m_seat, m_backend, m_session, m_outputLayout, m_display);
     m_xwaylandManager = std::make_unique<XWaylandManager>();
 
     if (!m_compositor->init()) {

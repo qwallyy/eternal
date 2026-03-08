@@ -11,6 +11,7 @@ struct wlr_allocator;
 struct wlr_scene;
 struct wlr_output_layout;
 struct wlr_seat;
+struct wlr_session;
 struct wlr_xdg_shell;
 struct wl_listener;
 }
@@ -41,6 +42,7 @@ public:
     wlr_scene* getScene() const { return m_scene; }
     wlr_output_layout* getOutputLayout() const { return m_outputLayout; }
     wlr_seat* getSeat() const { return m_seat; }
+    wlr_session* getSession() const { return m_session; }
 
     ConfigManager& getConfigManager() { return *m_configManager; }
     WorkspaceManager& getWorkspaceManager() { return *m_workspaceManager; }
@@ -68,6 +70,7 @@ private:
     wlr_scene* m_scene = nullptr;
     wlr_output_layout* m_outputLayout = nullptr;
     wlr_seat* m_seat = nullptr;
+    wlr_session* m_session = nullptr;
     wlr_xdg_shell* m_xdgShell = nullptr;
 
     std::unique_ptr<ConfigManager> m_configManager;

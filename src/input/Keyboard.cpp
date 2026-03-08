@@ -4,6 +4,7 @@
 #include "eternal/utils/Logger.hpp"
 
 extern "C" {
+#include <wlr/backend/session.h>
 #include <wlr/types/wlr_seat.h>
 }
 
@@ -12,6 +13,43 @@ extern "C" {
 #include <cstring>
 
 namespace eternal {
+
+namespace {
+
+bool handleVirtualTerminalSwitch(InputManager* manager, xkb_keysym_t keysym, bool pressed) {
+    if (!pressed || !manager) {
+        return false;
+    }
+
+    auto* keyboard = manager->getKeyboard();
+    auto* session = manager->getSession();
+    if (!keyboard || !session) {
+        return false;
+    }
+
+    if (!keyboard->isCtrlPressed() || !keyboard->isAltPressed()) {
+        return false;
+    }
+
+    if (keysym < XKB_KEY_XF86Switch_VT_1 || keysym > XKB_KEY_XF86Switch_VT_12) {
+        return false;
+    }
+
+    const unsigned vt = static_cast<unsigned>(keysym - XKB_KEY_XF86Switch_VT_1 + 1);
+    if (session->vtnr == 0) {
+        LOG_WARN("Virtual terminal switching is not supported for this session");
+        return true;
+    }
+
+    if (!wlr_session_change_vt(session, vt)) {
+        LOG_ERROR("Failed to switch to VT{}", vt);
+    } else {
+        LOG_INFO("Switching to VT{}", vt);
+    }
+    return true;
+}
+
+} // namespace
 
 // ---------------------------------------------------------------------------
 // Construction / destruction
@@ -175,6 +213,13 @@ void Keyboard::handleKeyEvent(wl_listener* listener, void* data) {
     xkb_keysym_t keysym = XKB_KEY_NoSymbol;
     if (self->xkbState_) {
         keysym = xkb_state_key_get_one_sym(self->xkbState_, keycode);
+    }
+
+    if (handleVirtualTerminalSwitch(self->manager_, keysym, pressed)) {
+        if (!pressed && self->repeatKeycode_ == event->keycode) {
+            self->stopRepeat();
+        }
+        return;
     }
 
     uint32_t mods = self->getModifiers();

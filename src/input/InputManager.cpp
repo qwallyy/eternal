@@ -73,10 +73,11 @@ void InputManager::libinputLogHandler(libinput* /*li*/,
 // Construction / destruction
 // ---------------------------------------------------------------------------
 
-InputManager::InputManager(wlr_seat* seat, wlr_backend* backend,
+InputManager::InputManager(wlr_seat* seat, wlr_backend* backend, wlr_session* session,
                            wlr_output_layout* outputLayout, wl_display* display)
     : seat_(seat)
     , backend_(backend)
+    , session_(session)
     , outputLayout_(outputLayout)
     , display_(display)
     , keyboard_(std::make_unique<Keyboard>(this))

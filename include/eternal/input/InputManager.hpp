@@ -3,6 +3,7 @@
 extern "C" {
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
+#include <wlr/backend/session.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
 #include <wlr/types/wlr_pointer.h>
@@ -66,7 +67,7 @@ struct InputDeviceConfig {
 
 class InputManager {
 public:
-    InputManager(wlr_seat* seat, wlr_backend* backend,
+    InputManager(wlr_seat* seat, wlr_backend* backend, wlr_session* session,
                  wlr_output_layout* outputLayout, wl_display* display);
     ~InputManager();
 
@@ -107,6 +108,7 @@ public:
 
     // Seat access
     [[nodiscard]] wlr_seat* getSeat() const { return seat_; }
+    [[nodiscard]] wlr_session* getSession() const { return session_; }
     [[nodiscard]] wlr_cursor* getCursor() const { return cursor_; }
     [[nodiscard]] wlr_output_layout* getOutputLayout() const { return outputLayout_; }
     [[nodiscard]] wl_display* getDisplay() const { return display_; }
@@ -125,6 +127,7 @@ public:
 private:
     wlr_seat* seat_ = nullptr;
     wlr_backend* backend_ = nullptr;
+    wlr_session* session_ = nullptr;
     wlr_output_layout* outputLayout_ = nullptr;
     wl_display* display_ = nullptr;
     wlr_scene* scene_ = nullptr;
