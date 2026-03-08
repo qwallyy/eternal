@@ -59,5 +59,6 @@ Thumbs.db
 *.orig
 *.bak
 *.tmp
-core
-core.*
+# Core dumps (not src/core/)
+/core
+/core.*
