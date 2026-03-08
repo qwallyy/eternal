@@ -49,13 +49,37 @@ case "$parent_comm" in
         ;;
 esac
 
-# Prefer seatd when available, otherwise fall back to logind.
+# Pick a libseat backend that matches the session type.
+# For display-manager/systemd sessions, logind is the correct default.
 if [ -z "${LIBSEAT_BACKEND:-}" ]; then
-    if [ -S /run/seatd.sock ]; then
-        export LIBSEAT_BACKEND=seatd
+    if [ -n "${ETERNAL_SEAT_BACKEND:-}" ]; then
+        LIBSEAT_BACKEND="$ETERNAL_SEAT_BACKEND"
+    elif [ -n "${XDG_SESSION_ID:-}" ] && command -v loginctl >/dev/null 2>&1 \
+        && loginctl show-session "$XDG_SESSION_ID" >/dev/null 2>&1; then
+        LIBSEAT_BACKEND=logind
     else
-        export LIBSEAT_BACKEND=logind
+        case "$parent_comm" in
+            lightdm*|lightdm-session)
+                LIBSEAT_BACKEND=logind
+                ;;
+            *)
+                seatd_sock="${SEATD_SOCK:-/run/seatd.sock}"
+                if [ -S "$seatd_sock" ] && [ -r "$seatd_sock" ] && [ -w "$seatd_sock" ]; then
+                    LIBSEAT_BACKEND=seatd
+                else
+                    LIBSEAT_BACKEND=logind
+                fi
+                ;;
+        esac
     fi
+    export LIBSEAT_BACKEND
+fi
+
+echo "LIBSEAT_BACKEND=$LIBSEAT_BACKEND"
+echo "XDG_SESSION_ID=${XDG_SESSION_ID:-unset}"
+echo "XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-unset}"
+if [ "${LIBSEAT_BACKEND}" = "seatd" ]; then
+    echo "SEATD_SOCK=${SEATD_SOCK:-/run/seatd.sock}"
 fi
 
 # Detect common virtual GPU vendors used by virt-manager video models.
