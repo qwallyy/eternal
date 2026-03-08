@@ -10,6 +10,7 @@ export WLR_NO_HARDWARE_CURSORS="${WLR_NO_HARDWARE_CURSORS:-1}"
 export WLR_RENDERER_ALLOW_SOFTWARE="${WLR_RENDERER_ALLOW_SOFTWARE:-1}"
 export WLR_RENDERER="${WLR_RENDERER:-pixman}"
 export WLR_DRM_NO_ATOMIC="${WLR_DRM_NO_ATOMIC:-1}"
+export WLR_LIBINPUT_NO_DEVICES="${WLR_LIBINPUT_NO_DEVICES:-1}"
 
 if command -v dbus-run-session >/dev/null 2>&1; then
     exec dbus-run-session /usr/bin/eternal
