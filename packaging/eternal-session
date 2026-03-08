@@ -13,6 +13,15 @@ mkdir -p "$LOG_DIR"
 } >>"$LOG_FILE"
 exec >>"$LOG_FILE" 2>&1
 
+# LightDM can race device/session initialization for Wayland sessions.
+# Allow a short delay (default 1s) when started from lightdm.
+parent_comm="$(ps -p "$PPID" -o comm= 2>/dev/null || true)"
+case "$parent_comm" in
+    lightdm*|lightdm-session)
+        sleep "${ETERNAL_LIGHTDM_DELAY:-1}"
+        ;;
+esac
+
 # Prefer seatd when available, otherwise fall back to logind.
 if [ -z "${LIBSEAT_BACKEND:-}" ]; then
     if [ -S /run/seatd.sock ]; then
@@ -24,6 +33,9 @@ fi
 
 # Detect common virtual GPU vendors used by virt-manager video models.
 is_virtual_gpu=0
+if command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt -q; then
+    is_virtual_gpu=1
+fi
 for vpath in /sys/class/drm/card*/device/vendor; do
     [ -r "$vpath" ] || continue
     vendor="$(cat "$vpath" 2>/dev/null || true)"
@@ -49,9 +61,27 @@ if [ "$is_virtual_gpu" -eq 1 ]; then
     export WLR_DRM_NO_ATOMIC="${WLR_DRM_NO_ATOMIC:-1}"
 fi
 
-# Opt-in: allow starting without libinput devices.
-if [ "${ETERNAL_ALLOW_NO_INPUT:-0}" = "1" ]; then
-    export WLR_LIBINPUT_NO_DEVICES=1
+# Preflight: ensure at least one input device is available.
+has_input=0
+for input_node in /dev/input/event*; do
+    [ -e "$input_node" ] || continue
+    if [ -r "$input_node" ]; then
+        has_input=1
+        break
+    fi
+done
+
+if [ "$has_input" -ne 1 ]; then
+    echo "No readable input devices found under /dev/input/event*"
+    echo "LIBSEAT_BACKEND=$LIBSEAT_BACKEND"
+    if [ "${ETERNAL_ALLOW_NO_INPUT:-0}" = "1" ]; then
+        echo "Proceeding because ETERNAL_ALLOW_NO_INPUT=1"
+        export WLR_LIBINPUT_NO_DEVICES=1
+    else
+        echo "Refusing to start without input devices to avoid an unusable session."
+        echo "Set ETERNAL_ALLOW_NO_INPUT=1 to override."
+        exit 1
+    fi
 fi
 
 if command -v dbus-run-session >/dev/null 2>&1; then
