@@ -118,30 +118,6 @@ Unix socket at `$XDG_RUNTIME_DIR/eternal/$WAYLAND_DISPLAY.sock`. JSON protocol.
 
 90+ dispatchers -- `exec`, `killactive`, `movewindow`, `workspace`, `fullscreen`, `togglefloating`, `cyclelayout`, `scrollleft`, `scrollright`, `centercolumn`, `toggleoverview`, `screenshot`, etc.
 
-## Project structure
-
-```
-src/
-  core/         server, output, surface, seat, layer shell
-  config/       KDL parser, config manager
-  layout/       all 8 layout engines + window node tree
-  animation/    bezier curves, spring physics, timeline
-  decoration/   borders, shadows, blur, rounded corners
-  input/        keyboard, pointer, touch, tablet, keybinds
-  gestures/     trackpad swipe/pinch, touch gestures
-  workspace/    dynamic workspaces, per-monitor stacks
-  ipc/          unix socket server, dispatchers
-  render/       renderer, shaders, effects, direct scanout
-  plugins/      dlopen plugin system, scripting bridge
-  protocols/    clipboard, drag-drop, idle, session lock
-  screenshot/   capture, pipewire recording
-  xwayland/     X11 compat
-include/eternal/  headers for all of the above
-config/           default eternal.kdl
-tests/            catch2 tests
-packaging/        PKGBUILD, rpm spec, nix flake
-```
-
 ## Plugins
 
 Plugins are shared libraries loaded at runtime.
