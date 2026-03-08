@@ -16,6 +16,16 @@ namespace eternal {
 
 namespace {
 
+unsigned vtFromKeysym(xkb_keysym_t keysym) {
+    if (keysym >= XKB_KEY_XF86Switch_VT_1 && keysym <= XKB_KEY_XF86Switch_VT_12) {
+        return static_cast<unsigned>(keysym - XKB_KEY_XF86Switch_VT_1 + 1);
+    }
+    if (keysym >= XKB_KEY_F1 && keysym <= XKB_KEY_F12) {
+        return static_cast<unsigned>(keysym - XKB_KEY_F1 + 1);
+    }
+    return 0;
+}
+
 bool handleVirtualTerminalSwitch(InputManager* manager, xkb_keysym_t keysym, bool pressed) {
     if (!pressed || !manager) {
         return false;
@@ -31,11 +41,11 @@ bool handleVirtualTerminalSwitch(InputManager* manager, xkb_keysym_t keysym, boo
         return false;
     }
 
-    if (keysym < XKB_KEY_XF86Switch_VT_1 || keysym > XKB_KEY_XF86Switch_VT_12) {
+    const unsigned vt = vtFromKeysym(keysym);
+    if (vt == 0) {
         return false;
     }
 
-    const unsigned vt = static_cast<unsigned>(keysym - XKB_KEY_XF86Switch_VT_1 + 1);
     if (session->vtnr == 0) {
         LOG_WARN("Virtual terminal switching is not supported for this session");
         return true;
