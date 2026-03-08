@@ -13,12 +13,37 @@ extern "C" {
 
 namespace eternal {
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+void cleanupLockSurfaceListeners(LockSurface& lockSurface) {
+    resetListener(lockSurface.mapListener);
+    resetListener(lockSurface.destroyListener);
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Construction / destruction
 // ---------------------------------------------------------------------------
 
 SessionLock::SessionLock(Server& server)
     : m_server(server) {
+    initListener(m_newLockListener);
+    initListener(m_lockDestroyListener);
+    initListener(m_lockUnlockListener);
+    initListener(m_lockNewSurfaceListener);
+
     // Actions blocked during lock.
     m_blockedActions = {
         "workspace",
@@ -74,6 +99,14 @@ void SessionLock::shutdown() {
         onUnlock();
     }
 
+    resetListener(m_newLockListener);
+    resetListener(m_lockDestroyListener);
+    resetListener(m_lockUnlockListener);
+    resetListener(m_lockNewSurfaceListener);
+
+    for (auto& lockSurface : m_lockSurfaces) {
+        cleanupLockSurfaceListeners(*lockSurface);
+    }
     m_lockSurfaces.clear();
     m_stateCallbacks.clear();
     m_initialized = false;
@@ -150,6 +183,8 @@ void SessionLock::onNewLockSurface(wlr_session_lock_surface_v1* surface,
     lockSurface->output = output;
     lockSurface->wlrSurface = surface;
     lockSurface->mapped = false;
+    initListener(lockSurface->mapListener);
+    initListener(lockSurface->destroyListener);
 
     // Listen for map/destroy.
     lockSurface->mapListener.notify =
@@ -189,6 +224,9 @@ void SessionLock::onUnlock() {
     transitionTo(LockState::Unlocking);
 
     // Clean up lock surfaces.
+    for (auto& lockSurface : m_lockSurfaces) {
+        cleanupLockSurfaceListeners(*lockSurface);
+    }
     m_lockSurfaces.clear();
 
     // Unblock features.
@@ -202,9 +240,9 @@ void SessionLock::onUnlock() {
 
 void SessionLock::onLockDestroy() {
     if (m_currentLock) {
-        wl_list_remove(&m_lockDestroyListener.link);
-        wl_list_remove(&m_lockUnlockListener.link);
-        wl_list_remove(&m_lockNewSurfaceListener.link);
+        resetListener(m_lockDestroyListener);
+        resetListener(m_lockUnlockListener);
+        resetListener(m_lockNewSurfaceListener);
     }
 
     if (isLocked()) {

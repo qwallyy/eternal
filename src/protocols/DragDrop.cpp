@@ -13,12 +13,34 @@ extern "C" {
 
 namespace eternal {
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Construction / destruction
 // ---------------------------------------------------------------------------
 
 DragDrop::DragDrop(Server& server)
-    : m_server(server) {}
+    : m_server(server) {
+    initListener(m_dragDestroyListener);
+    initListener(m_dragIconMapListener);
+    initListener(m_dragIconUnmapListener);
+    initListener(m_dragIconDestroyListener);
+    initListener(m_requestStartDragListener);
+    initListener(m_startDragListener);
+}
 
 DragDrop::~DragDrop() {
     shutdown();
@@ -226,9 +248,9 @@ void DragDrop::setupDragListeners() {
 
 void DragDrop::cleanupDragListeners() {
     if (m_session.wlrDrag) {
-        wl_list_remove(&m_dragDestroyListener.link);
+        resetListener(m_dragDestroyListener);
         if (m_session.iconSurface) {
-            wl_list_remove(&m_dragIconDestroyListener.link);
+            resetListener(m_dragIconDestroyListener);
         }
     }
 }

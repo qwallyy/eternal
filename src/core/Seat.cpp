@@ -16,6 +16,21 @@ extern "C" {
 
 namespace eternal {
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Seat - wraps wlr_seat and manages input devices
 // ---------------------------------------------------------------------------
@@ -85,6 +100,11 @@ Seat::Seat(struct wlr_seat* wlr_seat) : seat_(wlr_seat) {
 }
 
 Seat::~Seat() {
+    for (auto& keyboard : keyboards_) {
+        resetListener(keyboard->key_listener);
+        resetListener(keyboard->modifiers_listener);
+        resetListener(keyboard->destroy_listener);
+    }
     keyboards_.clear();
     if (xkb_ctx_) {
         xkb_context_unref(xkb_ctx_);
@@ -147,6 +167,9 @@ void Seat::setupKeyboard(struct wlr_input_device* device) {
     auto state = std::make_unique<KeyboardState>();
     state->seat = this;
     state->keyboard = wlr_kb;
+    initListener(state->key_listener);
+    initListener(state->modifiers_listener);
+    initListener(state->destroy_listener);
 
     state->key_listener.notify = onKeyboardKey;
     wl_signal_add(&wlr_kb->events.key, &state->key_listener);
@@ -209,9 +232,9 @@ void Seat::onKeyboardDestroy(struct wl_listener* listener, void* data) {
     KeyboardState* state = wl_container_of(listener, state, destroy_listener);
     (void)data;
 
-    wl_list_remove(&state->key_listener.link);
-    wl_list_remove(&state->modifiers_listener.link);
-    wl_list_remove(&state->destroy_listener.link);
+    resetListener(state->key_listener);
+    resetListener(state->modifiers_listener);
+    resetListener(state->destroy_listener);
 
     auto& keyboards = state->seat->keyboards_;
     keyboards.erase(

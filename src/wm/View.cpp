@@ -1,9 +1,28 @@
 #include "View.hpp"
 #include <wlr/types/wlr_xdg_shell.h>
 
+namespace {
+
+void initListener(wl_listener& listener) {
+    listener.notify = nullptr;
+    wl_list_init(&listener.link);
+}
+
+void resetListener(wl_listener& listener) {
+    wl_list_remove(&listener.link);
+    wl_list_init(&listener.link);
+    listener.notify = nullptr;
+}
+
+}
+
 View::View(WindowManager* server, wlr_xdg_toplevel* toplevel) {
     this->wm = server;
     this->xdg_toplevel = toplevel;
+    wl_list_init(&this->link);
+    initListener(map_listener);
+    initListener(unmap_listener);
+    initListener(destroy_listener);
 
     // Listeners and scene setup will go here
 
@@ -19,9 +38,11 @@ View::View(WindowManager* server, wlr_xdg_toplevel* toplevel) {
 }
 
 View::~View() {
-    wl_list_remove(&map_listener.link);
-    wl_list_remove(&unmap_listener.link);
-    wl_list_remove(&destroy_listener.link);
+    resetListener(map_listener);
+    resetListener(unmap_listener);
+    resetListener(destroy_listener);
+    wl_list_remove(&link);
+    wl_list_init(&link);
 }
 
 void View::view_map(wl_listener* listener, void* data) {
@@ -32,6 +53,7 @@ void View::view_map(wl_listener* listener, void* data) {
 void View::view_unmap(wl_listener* listener, void* data) {
     View* view = wl_container_of(listener, view, unmap_listener);
     wl_list_remove(&view->link);
+    wl_list_init(&view->link);
 }
 
 void View::view_destroy(wl_listener* listener, void* data) {
